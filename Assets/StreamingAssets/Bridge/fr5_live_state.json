@@ -1,0 +1,15 @@
+﻿{
+  "isValid": false,
+  "source": "CSharpBridge",
+  "timestampSeconds": 1777527398.159,
+  "jointDegrees": [0, 0, 0, 0, 0, 0],
+  "flangePositionMillimeters": [0, 0, 0],
+  "flangeRotationDegrees": [0, 0, 0],
+  "tcpPositionMillimeters": [0, 0, 0],
+  "tcpRotationDegrees": [0, 0, 0],
+  "toolIndex": 0,
+  "userIndex": 0,
+  "robotMode": "Unknown",
+  "robotState": "Disconnected",
+  "alarmCode": 0
+}

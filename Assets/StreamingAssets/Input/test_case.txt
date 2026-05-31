@@ -1,0 +1,69 @@
+[TestCase]
+ID=T100
+Name=Random Pose 1
+J1=30
+J2=-20
+J3=45
+J4=10
+J5=15
+J6=5
+
+[TestCase]
+ID=T101
+Name=Random Pose 2
+J1=-45
+J2=30
+J3=-10
+J4=90
+J5=-20
+J6=15
+
+[TestCase]
+ID=T102
+Name=Random Pose 3
+J1=10
+J2=20
+J3=30
+J4=40
+J5=50
+J6=60
+
+[TestCase]
+ID=T110
+Name=J1 Sweep 0
+J1=0
+J2=0
+J3=0
+J4=0
+J5=0
+J6=0
+
+[TestCase]
+ID=T111
+Name=J1 Sweep 30
+J1=30
+J2=0
+J3=0
+J4=0
+J5=0
+J6=0
+
+[TestCase]
+ID=T112
+Name=J1 Sweep 60
+J1=60
+J2=0
+J3=0
+J4=0
+J5=0
+J6=0
+
+[TestCase]
+ID=T113
+Name=J1 Sweep 90
+J1=90
+J2=0
+J3=0
+J4=0
+J5=0
+J6=0
