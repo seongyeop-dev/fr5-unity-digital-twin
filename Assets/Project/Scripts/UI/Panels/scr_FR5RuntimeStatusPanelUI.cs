@@ -25,6 +25,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private scr_FR5CSharpSdkClient cSharpSdkClient;
     [SerializeField] private scr_FR5RobotManualController robotController;
     [SerializeField] private scr_FR5UnityReplayJointStateSource unityReplaySource;
+    [SerializeField] private scr_FR5Ros2JointStateClient ros2JointStateClient;
 
     [Header("TopBar     ؽ Ʈ")]
     [SerializeField] private TMP_Text titleText;
@@ -206,6 +207,28 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             connected = cSharpBridgeClient.IsConnected;
             sampleValid = cSharpBridgeClient.LastSampleValid;
         }
+        else if (runtimeSyncManager.SelectedRuntimeSource == scr_FR5RuntimeSyncManager.RuntimeSourceType.Ros2JointState)
+        {
+            scr_FR5Ros2JointStateClient ros2Client = ResolveRos2JointStateClient();
+
+            formattedSource = "ROS2 Joint State";
+
+            if (ros2Client != null)
+            {
+                connected = ros2Client.IsConnected;
+                sampleValid = ros2Client.LastSampleValid;
+                formattedRobotState = GetRos2RuntimeStateLabel(ros2Client);
+                formattedLastPoll = GetRos2LastPollLabel(ros2Client, formattedLastPoll);
+                formattedMessage = GetRos2MessageLabel(ros2Client, formattedMessage);
+            }
+            else
+            {
+                connected = false;
+                sampleValid = false;
+                formattedRobotState = "ROS2 SOURCE MISSING";
+                formattedMessage = "ROS2 JointState client is not assigned.";
+            }
+        }
 
         ApplyTopBarValues(
             formattedMode,
@@ -228,6 +251,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
         SetLamp(connectionLamp, connected, connectedColor, disconnectedColor);
         SetLamp(sampleValidLamp, sampleValid, validColor, invalidColor);
+        ApplyConnectionStatusLabels(connected, sampleValid);
 
         ApplyBlockColors(formattedMode, formattedRobotState);
     }
@@ -331,6 +355,11 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             return;
         }
 
+        if (TryApplyRos2RuntimeValues(formattedLastPoll))
+        {
+            return;
+        }
+
         SetValue(rightLastPollText, formattedLastPoll);
         SetValue(rightRuntimeModeText, $"MODE : {defaultRobotModeLabel}");
 
@@ -386,6 +415,50 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         return true;
     }
 
+    private bool TryApplyRos2RuntimeValues(string formattedLastPoll)
+    {
+        if (runtimeSyncManager == null ||
+            runtimeSyncManager.SelectedRuntimeSource != scr_FR5RuntimeSyncManager.RuntimeSourceType.Ros2JointState)
+        {
+            return false;
+        }
+
+        SetValue(rightRuntimeModeText, "MODE : ROS2 JOINT STATE");
+
+        scr_FR5Ros2JointStateClient ros2Client = ResolveRos2JointStateClient();
+
+        if (ros2Client == null)
+        {
+            SetValue(rightLastPollText, "LAST : -");
+            SetValue(rightRuntimeSpeedText, "TOPIC : SOURCE MISSING");
+            SetValue(rightRuntimeStateText, "STATE : ROS2 WAITING");
+            return true;
+        }
+
+        string topicLabel = string.IsNullOrWhiteSpace(ros2Client.TopicName)
+            ? "-"
+            : ros2Client.TopicName;
+
+        string subscribedLabel = ros2Client.HasSubscribed ? "YES" : "NO";
+        string lastPollLabel = GetRos2LastPollLabel(ros2Client, formattedLastPoll);
+        string stateLabel = GetRos2RuntimeStateLabel(ros2Client);
+        string jointSummary = GetRos2JointSummaryLabel(ros2Client);
+
+        SetValue(rightLastPollText, $"LAST : {lastPollLabel}");
+        SetValue(rightRuntimeSpeedText, $"TOPIC : {topicLabel} | SUB : {subscribedLabel}");
+
+        if (!string.IsNullOrWhiteSpace(jointSummary))
+        {
+            SetValue(rightRuntimeStateText, $"STATE : {stateLabel} | J {jointSummary}");
+        }
+        else
+        {
+            SetValue(rightRuntimeStateText, $"STATE : {stateLabel}");
+        }
+
+        return true;
+    }
+
     private void ApplyRightAlarmValues(string formattedMessage)
     {
         if (rightAlarmText == null)
@@ -427,6 +500,105 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         SetValue(rightAlarmText, noAlarmLabel);
     }
 
+    private scr_FR5Ros2JointStateClient ResolveRos2JointStateClient()
+    {
+        if (ros2JointStateClient != null)
+        {
+            return ros2JointStateClient;
+        }
+
+        ros2JointStateClient = FindObjectOfType<scr_FR5Ros2JointStateClient>();
+        return ros2JointStateClient;
+    }
+
+    private string GetRos2RuntimeStateLabel(scr_FR5Ros2JointStateClient ros2Client)
+    {
+        if (ros2Client == null)
+        {
+            return "ROS2 WAITING";
+        }
+
+        string robotState = string.IsNullOrWhiteSpace(ros2Client.LastRobotState)
+            ? string.Empty
+            : ros2Client.LastRobotState.ToUpperInvariant();
+
+        string errorMessage = string.IsNullOrWhiteSpace(ros2Client.LastErrorMessage)
+            ? string.Empty
+            : ros2Client.LastErrorMessage.ToUpperInvariant();
+
+        if (robotState.Contains("TIMEOUT") || errorMessage.Contains("TIMEOUT"))
+        {
+            return "ROS2 TIMEOUT";
+        }
+
+        if (!ros2Client.IsConnected || !ros2Client.LatestMessageReceived)
+        {
+            return "ROS2 WAITING";
+        }
+
+        if (ros2Client.LastPollSucceeded && ros2Client.LastSampleValid)
+        {
+            return "ROS2 LIVE";
+        }
+
+        return "ROS2 WAITING";
+    }
+
+    private string GetRos2LastPollLabel(scr_FR5Ros2JointStateClient ros2Client, string fallbackLabel)
+    {
+        if (ros2Client == null)
+        {
+            return string.IsNullOrWhiteSpace(fallbackLabel) ? "-" : fallbackLabel;
+        }
+
+        if (!string.IsNullOrWhiteSpace(ros2Client.LastPollTime) && ros2Client.LastPollTime != "-")
+        {
+            return ros2Client.LastPollTime;
+        }
+
+        return string.IsNullOrWhiteSpace(fallbackLabel) ? "-" : fallbackLabel;
+    }
+
+    private string GetRos2MessageLabel(scr_FR5Ros2JointStateClient ros2Client, string fallbackMessage)
+    {
+        if (ros2Client == null)
+        {
+            return "ROS2 JointState client is not assigned.";
+        }
+
+        string message = ros2Client.GetDisplayMessageLabel(fallbackMessage);
+        string topicLabel = string.IsNullOrWhiteSpace(ros2Client.TopicName)
+            ? "-"
+            : ros2Client.TopicName;
+        string jointSummary = GetRos2JointSummaryLabel(ros2Client);
+
+        if (!string.IsNullOrWhiteSpace(jointSummary))
+        {
+            return $"{message} | Topic: {topicLabel} | Joints: {jointSummary}";
+        }
+
+        return $"{message} | Topic: {topicLabel}";
+    }
+
+    private string GetRos2JointSummaryLabel(scr_FR5Ros2JointStateClient ros2Client)
+    {
+        if (ros2Client != null &&
+            !string.IsNullOrWhiteSpace(ros2Client.LastJointSummary) &&
+            ros2Client.LastJointSummary != "-")
+        {
+            return ros2Client.LastJointSummary;
+        }
+
+        if (runtimeSyncManager != null &&
+            !string.IsNullOrWhiteSpace(runtimeSyncManager.LastAppliedJointSummary) &&
+            runtimeSyncManager.LastAppliedJointSummary != "-")
+        {
+            return runtimeSyncManager.LastAppliedJointSummary;
+        }
+
+        return string.Empty;
+    }
+
     private void ApplyStaticLabels()
     {
         SetLabel(modeLabelText, "MODE");
@@ -436,6 +608,12 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         SetLabel(lastMessageLabelText, "MESSAGE");
         SetLabel(connectionLabelText, "LINK");
         SetLabel(validLabelText, "VALID");
+    }
+
+    private void ApplyConnectionStatusLabels(bool connected, bool sampleValid)
+    {
+        SetLabel(connectionLabelText, connected ? "LINK CONNECTED" : "LINK DISCONNECTED");
+        SetLabel(validLabelText, sampleValid ? "VALID TRUE" : "VALID FALSE");
     }
 
     private void ApplyNoReferenceState()
