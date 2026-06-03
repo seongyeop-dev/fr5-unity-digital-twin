@@ -24,6 +24,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
     [SerializeField] private scr_FR5BottomBarUI bottomBarUI;
     [SerializeField] private scr_FR5UILayoutModeController layoutModeController;
     [SerializeField] private scr_FR5UnityReplayJointStateSource unityReplaySource;
+    [SerializeField] private scr_FR5Ros2CommandPublisher ros2CommandPublisher;
 
     [Header("Speed UI")]
     [SerializeField] private TMP_Text commandSpeedText;
@@ -100,6 +101,18 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
     public void OnClickMoveJ()
     {
+        float[] jointTarget = GetCommandJointTarget();
+
+        // When ROS2 Joint State source is active, send only a dry-run ROS2 command.
+        // Do not call the C# SDK client because the hardware adapter may not be assigned.
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2MoveJ(jointTarget);
+            WriteLog(published ? "ROS2 MOVE_J command published." : "ROS2 MOVE_J publish failed.");
+            RefreshLinkedUI();
+            return;
+        }
+
         if (cSharpSdkClient == null)
         {
             WriteLog("C# SDK Client is not assigned.");
@@ -107,7 +120,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
             return;
         }
 
-        cSharpSdkClient.SendMoveJ(GetCommandJointTarget());
+        cSharpSdkClient.SendMoveJ(jointTarget);
         WriteLog(cSharpSdkClient.GetLastCommandMessage());
         RefreshLinkedUI();
     }
@@ -144,6 +157,16 @@ public class scr_FR5UICommandRouter : MonoBehaviour
     {
         if (TryStopUnityReplay())
         {
+            return;
+        }
+
+        // When ROS2 Joint State source is active, send only a dry-run ROS2 STOP command.
+        // Do not call the C# SDK client because the hardware adapter may not be assigned.
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2Stop();
+            WriteLog(published ? "ROS2 STOP command published." : "ROS2 STOP publish failed.");
+            RefreshLinkedUI();
             return;
         }
 
@@ -734,6 +757,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
                runtimeSyncManager.SelectedRuntimeSource == scr_FR5RuntimeSyncManager.RuntimeSourceType.UnityReplay;
     }
 
+    private bool IsRos2JointStateSourceActive()
+    {
+        return runtimeSyncManager != null &&
+               runtimeSyncManager.SelectedRuntimeSource == scr_FR5RuntimeSyncManager.RuntimeSourceType.Ros2JointState;
+    }
+
     private scr_FR5UnityReplayJointStateSource ResolveUnityReplaySource()
     {
         if (unityReplaySource != null)
@@ -885,6 +914,53 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         }
 
         return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
+    }
+
+    private int GetCommandSpeedPercent()
+    {
+        return cSharpSdkClient != null ? cSharpSdkClient.GetCommandSpeedPercent() : 100;
+    }
+
+    private scr_FR5Ros2CommandPublisher ResolveRos2CommandPublisher()
+    {
+        if (ros2CommandPublisher != null)
+        {
+            return ros2CommandPublisher;
+        }
+
+        ros2CommandPublisher = FindObjectOfType<scr_FR5Ros2CommandPublisher>();
+
+        if (ros2CommandPublisher == null)
+        {
+            GameObject publisherObject = new GameObject("FR5Ros2CommandPublisher_Runtime");
+            ros2CommandPublisher = publisherObject.AddComponent<scr_FR5Ros2CommandPublisher>();
+        }
+
+        return ros2CommandPublisher;
+    }
+
+    private bool TryPublishRos2MoveJ(float[] jointTarget)
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishMoveJ(jointTarget, GetCommandSpeedPercent());
+    }
+
+    private bool TryPublishRos2Stop()
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishStop();
     }
 
     private void WriteLog(string message)
