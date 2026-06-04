@@ -43,6 +43,17 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
     public void OnClickHome()
     {
+        // In ROS2 live mode, do not directly modify the Unity robot pose.
+        // Unity visual pose must be driven by /joint_states only.
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2Home();
+            WriteLog(published ? "ROS2 HOME command published." : "ROS2 HOME publish failed.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        // Local/simulation mode only.
         if (robotController != null)
         {
             robotController.MoveToHome();
@@ -59,6 +70,17 @@ public class scr_FR5UICommandRouter : MonoBehaviour
             return;
         }
 
+        // In ROS2 live mode, do not directly reset Unity joints.
+        // Unity visual pose must continue following /joint_states.
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2Reset();
+            WriteLog(published ? "ROS2 RESET command published." : "ROS2 RESET publish failed.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        // Local/simulation mode only.
         if (robotController != null)
         {
             robotController.ResetAllJoints();
@@ -67,6 +89,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         WriteLog("All joints reset to 0.");
         RefreshLinkedUI();
     }
+
     // ------------------------------------------------------------
     // LEFT / OPERATE - Jog Mode º¯°æ
     // ------------------------------------------------------------
@@ -763,6 +786,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
                runtimeSyncManager.SelectedRuntimeSource == scr_FR5RuntimeSyncManager.RuntimeSourceType.Ros2JointState;
     }
 
+
     private scr_FR5UnityReplayJointStateSource ResolveUnityReplaySource()
     {
         if (unityReplaySource != null)
@@ -961,6 +985,30 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         }
 
         return publisher.PublishStop();
+    }
+
+    private bool TryPublishRos2Home()
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishHome(GetCommandSpeedPercent());
+    }
+
+    private bool TryPublishRos2Reset()
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishReset();
     }
 
     private void WriteLog(string message)

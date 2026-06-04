@@ -4654,6 +4654,53 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
+--- !u!1 &173278272
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 173278273}
+  - component: {fileID: 173278274}
+  m_Layer: 0
+  m_Name: FR5Ros2CommandPublisher
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &173278273
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 173278272}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 649398909}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &173278274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 173278272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ca9532fc7755c9479e852fa70c058fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::scr_FR5Ros2CommandPublisher
+  topicName: /fr5/unity_command
+  registerOnStart: 1
+  verboseLog: 1
 --- !u!1 &182346556
 GameObject:
   m_ObjectHideFlags: 0
@@ -12671,6 +12718,7 @@ MonoBehaviour:
   bottomBarUI: {fileID: 2060984055}
   layoutModeController: {fileID: 1025819706}
   unityReplaySource: {fileID: 1041115500}
+  ros2CommandPublisher: {fileID: 0}
   commandSpeedText: {fileID: 39525089}
   refreshLinkedUIAfterCommand: 1
 --- !u!4 &544964600
@@ -14831,6 +14879,7 @@ Transform:
   - {fileID: 1442133785}
   - {fileID: 1725121351}
   - {fileID: 1041115499}
+  - {fileID: 173278273}
   m_Father: {fileID: 924493894}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &666505131
@@ -32295,6 +32344,7 @@ MonoBehaviour:
   cSharpSdkClient: {fileID: 1442133786}
   robotController: {fileID: 362816149}
   unityReplaySource: {fileID: 1041115500}
+  ros2JointStateClient: {fileID: 0}
   titleText: {fileID: 9128950844163491858}
   modeText: {fileID: 7596424723607565132}
   sourceText: {fileID: 1806304142}
@@ -43297,7 +43347,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.000015258789}
+  m_AnchoredPosition: {x: 0, y: -0.000030517578}
   m_SizeDelta: {x: 0, y: 150}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!1 &1885726273
@@ -45297,7 +45347,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1146515552}
   m_HandleRect: {fileID: 1146515551}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
