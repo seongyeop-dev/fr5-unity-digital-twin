@@ -59,7 +59,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
             robotController.MoveToHome();
         }
 
-        WriteLog("Moved to home pose.");
+        WriteLog("Moved to local zero/home reference pose.");
         RefreshLinkedUI();
     }
 
@@ -86,7 +86,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
             robotController.ResetAllJoints();
         }
 
-        WriteLog("All joints reset to 0.");
+        WriteLog("Local joints reset to RobotZeroPoseDeg.");
         RefreshLinkedUI();
     }
 

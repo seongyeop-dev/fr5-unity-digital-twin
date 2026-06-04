@@ -53,6 +53,10 @@ public class scr_FR5JointPanelUI : MonoBehaviour
     [Header("Command Edit Options")]
     [SerializeField] private float stepDegrees = 10f;
     [SerializeField] private string inputFormat = "0.0";
+
+    // Command UI home preset only.
+    // This is not confirmed as the actual FAIRINO SDK home pose.
+    // See Docs/ProjectMap/README_Pose_Convention.md.
     [SerializeField] private float[] homePresetJointAngles = new float[6] { 0f, -90f, 90f, -90f, -90f, 0f };
 
     [Header("Debug")]
@@ -243,7 +247,7 @@ public class scr_FR5JointPanelUI : MonoBehaviour
 
         if (enableDebugLog)
         {
-            Debug.Log("[FR5JointPanelUI] Home preset applied to target pose.");
+            Debug.Log("[FR5JointPanelUI] Command home preset applied to target pose.");
         }
     }
 
@@ -254,7 +258,7 @@ public class scr_FR5JointPanelUI : MonoBehaviour
 
         if (enableDebugLog)
         {
-            Debug.Log("[FR5JointPanelUI] Reset preset applied to target pose.");
+            Debug.Log("[FR5JointPanelUI] Zero preset applied to target pose.");
         }
     }
 
