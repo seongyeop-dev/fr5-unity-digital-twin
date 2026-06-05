@@ -50,8 +50,8 @@ public class scr_VirtualJointController : MonoBehaviour
     [SerializeField] private float j2Sign = -1f;
     [SerializeField] private float j3Sign = -1f;
     [SerializeField] private float j4Sign = -1f;
-    [SerializeField] private float j5Sign = 1f;
-    [SerializeField] private float j6Sign = 1f;
+    [SerializeField] private float j5Sign = -1f;
+    [SerializeField] private float j6Sign = -1f;
 
     [Header("관절 제한값 / Degree")]
     [SerializeField] private float j1Min = -180f;

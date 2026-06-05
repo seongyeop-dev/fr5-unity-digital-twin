@@ -10163,9 +10163,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1626085200}
-        m_TargetAssemblyTypeName: scr_VirtualJointController, Assembly-CSharp
-        m_MethodName: MoveHome
+      - m_Target: {fileID: 544964599}
+        m_TargetAssemblyTypeName: scr_FR5UICommandRouter, Assembly-CSharp
+        m_MethodName: OnClickHome
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -19410,9 +19410,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1626085200}
-        m_TargetAssemblyTypeName: scr_VirtualJointController, Assembly-CSharp
-        m_MethodName: ResetPose
+      - m_Target: {fileID: 544964599}
+        m_TargetAssemblyTypeName: scr_FR5UICommandRouter, Assembly-CSharp
+        m_MethodName: OnClickReset
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -38854,8 +38854,8 @@ MonoBehaviour:
   j2Sign: -1
   j3Sign: -1
   j4Sign: -1
-  j5Sign: 1
-  j6Sign: 1
+  j5Sign: -1
+  j6Sign: -1
   j1Min: -180
   j1Max: 180
   j2Min: -180
@@ -45348,7 +45348,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1146515551}
   m_Direction: 2
   m_Value: 1
-  m_Size: 1
+  m_Size: 0.9999999
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
