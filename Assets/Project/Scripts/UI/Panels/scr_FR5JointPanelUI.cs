@@ -344,6 +344,13 @@ public class scr_FR5JointPanelUI : MonoBehaviour
         ResumeLiveMonitorMode(syncImmediately: true);
     }
 
+    public float[] ApplyHomePresetForCommand()
+    {
+        EnterCommandEditFromCurrentPose();
+        ApplyPreset(homePresetJointAngles);
+        return GetTargetAnglesCopy();
+    }
+
     public float[] GetTargetAnglesCopy()
     {
         // MOVE_J command must use the latest command target shown in the UI.

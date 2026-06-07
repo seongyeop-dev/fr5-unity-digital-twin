@@ -47,7 +47,8 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         // Unity visual pose must be driven by /joint_states only.
         if (IsRos2JointStateSourceActive())
         {
-            bool published = TryPublishRos2Home();
+            float[] homeTarget = GetHomeCommandJointTarget();
+            bool published = TryPublishRos2Home(homeTarget);
             WriteLog(published ? "ROS2 HOME command published." : "ROS2 HOME publish failed.");
             RefreshLinkedUI();
             return;
@@ -945,6 +946,19 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
     }
 
+    private float[] GetHomeCommandJointTarget()
+    {
+        if (jointPanelUI != null)
+        {
+            float[] homeTarget = jointPanelUI.ApplyHomePresetForCommand();
+            Debug.Log($"[FR5UICommandRouter] HOME target from JointPanelUI: [{string.Join(", ", homeTarget)}]");
+            return homeTarget;
+        }
+
+        Debug.LogWarning("[FR5UICommandRouter] JointPanelUI is not assigned. HOME target fallback is zero.");
+        return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
+    }
+
     private int GetCommandSpeedPercent()
     {
         return cSharpSdkClient != null ? cSharpSdkClient.GetCommandSpeedPercent() : 100;
@@ -992,7 +1006,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         return publisher.PublishStop();
     }
 
-    private bool TryPublishRos2Home()
+    private bool TryPublishRos2Home(float[] homeTarget)
     {
         scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
 
@@ -1001,7 +1015,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
             return false;
         }
 
-        return publisher.PublishHome(GetCommandSpeedPercent());
+        return publisher.PublishHome(homeTarget, GetCommandSpeedPercent());
     }
 
     private bool TryPublishRos2Reset()
