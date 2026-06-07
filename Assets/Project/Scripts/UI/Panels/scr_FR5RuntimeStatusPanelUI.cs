@@ -3,23 +3,24 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// FR5   Ÿ         г  UI
+/// FR5 Runtime 상태 표시 UI를 관리하는 스크립트입니다.
 ///
-///     :
-/// 1. TopBar   Runtime    ¸  ǥ   Ѵ .
-/// 2. RightDock Summary   MODE / SOURCE / ROBOT / VALID    ¸  ǥ   Ѵ .
-/// 3. RightDock TCP / DELTA / ROT      ǥ   Ѵ .
-/// 4. RightDock Runtime       ¸  ǥ   Ѵ .
-/// 5. RightDock Compare      ǥ   Ѵ .
-/// 6. RightDock Alarm    ¸  ǥ   Ѵ .
+/// 주요 역할:
+/// 1. TopBar에 Runtime 모드 / Source / Robot 상태 / 연결 상태를 표시합니다.
+/// 2. RightDock Summary에 MODE / SOURCE / ROBOT / VALID 상태를 표시합니다.
+/// 3. RightDock TCP / DELTA / ROT 값을 표시합니다.
+/// 4. RightDock Runtime 상태를 표시합니다.
+/// 5. RightDock Compare 값을 표시합니다.
+/// 6. RightDock Alarm 값을 표시합니다.
+/// 7. COMMAND / QUEUE / MOTION 상태를 표시합니다.
 ///
-///   Ģ:
-/// - RectTransform, Anchor,   ġ, ũ                   ʴ´ .
-/// -      ũ  Ʈ   Text, Image     ,                Ѵ .
+/// 주의:
+/// - RectTransform, Anchor, 위치, 크기 값은 이 스크립트에서 변경하지 않습니다.
+/// - 이 스크립트는 Text, Image 값만 갱신합니다.
 /// </summary>
 public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 {
-    [Header("    ")]
+    [Header("참조 설정")]
     [SerializeField] private scr_FR5RuntimeSyncManager runtimeSyncManager;
     [SerializeField] private scr_FR5CSharpBridgeClient cSharpBridgeClient;
     [SerializeField] private scr_FR5CSharpSdkClient cSharpSdkClient;
@@ -27,7 +28,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private scr_FR5UnityReplayJointStateSource unityReplaySource;
     [SerializeField] private scr_FR5Ros2JointStateClient ros2JointStateClient;
 
-    [Header("TopBar     ؽ Ʈ")]
+    [Header("TopBar 값 텍스트")]
     [SerializeField] private TMP_Text titleText;
     [SerializeField] private TMP_Text modeText;
     [SerializeField] private TMP_Text sourceText;
@@ -35,7 +36,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private TMP_Text lastPollText;
     [SerializeField] private TMP_Text lastMessageText;
 
-    [Header("TopBar     ؽ Ʈ")]
+    [Header("TopBar 라벨 텍스트")]
     [SerializeField] private TMP_Text modeLabelText;
     [SerializeField] private TMP_Text sourceLabelText;
     [SerializeField] private TMP_Text robotLabelText;
@@ -44,28 +45,28 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private TMP_Text connectionLabelText;
     [SerializeField] private TMP_Text validLabelText;
 
-    [Header("TopBar        Ʈ")]
+    [Header("TopBar 상세 블록")]
     [SerializeField] private GameObject lastPollBlockRoot;
     [SerializeField] private GameObject lastMessageBlockRoot;
 
-    [Header("TopBar       ̹   ")]
+    [Header("TopBar 블록 이미지")]
     [SerializeField] private Image modeBlockGraphic;
     [SerializeField] private Image sourceBlockGraphic;
     [SerializeField] private Image robotStateBlockGraphic;
     [SerializeField] private Image connectionBlockGraphic;
     [SerializeField] private Image validBlockGraphic;
 
-    [Header("     /       ̹   ")]
+    [Header("연결 / 유효성 램프")]
     [SerializeField] private Image connectionLamp;
     [SerializeField] private Image sampleValidLamp;
 
-    [Header("RightDock Summary  ؽ Ʈ")]
+    [Header("RightDock Summary 텍스트")]
     [SerializeField] private TMP_Text rightModeSummaryText;
     [SerializeField] private TMP_Text rightSourceSummaryText;
     [SerializeField] private TMP_Text rightRobotStateSummaryText;
     [SerializeField] private TMP_Text rightValidSummaryText;
 
-    [Header("RightDock TCP / Delta  ؽ Ʈ")]
+    [Header("RightDock TCP / Delta 텍스트")]
     [SerializeField] private TMP_Text rightRelativeXText;
     [SerializeField] private TMP_Text rightRelativeYText;
     [SerializeField] private TMP_Text rightRelativeZText;
@@ -78,36 +79,41 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private TMP_Text rightTcpRotYText;
     [SerializeField] private TMP_Text rightTcpRotZText;
 
-    [Header("RightDock Runtime  ؽ Ʈ")]
+    [Header("RightDock Runtime 텍스트")]
     [SerializeField] private TMP_Text rightLastPollText;
     [SerializeField] private TMP_Text rightRuntimeModeText;
     [SerializeField] private TMP_Text rightRuntimeSpeedText;
     [SerializeField] private TMP_Text rightRuntimeStateText;
 
-    [Header("RightDock Compare - FK   ġ")]
+    [Header("RightDock Command Status 텍스트")]
+    [SerializeField] private TMP_Text rightCommandStatusText;
+    [SerializeField] private TMP_Text rightQueueStatusText;
+    [SerializeField] private TMP_Text rightMotionStatusText;
+
+    [Header("RightDock Compare - FK 위치")]
     [SerializeField] private TMP_Text rightFkXText;
     [SerializeField] private TMP_Text rightFkYText;
     [SerializeField] private TMP_Text rightFkZText;
 
-    [Header("RightDock Compare - Python   ġ")]
+    [Header("RightDock Compare - Python 위치")]
     [SerializeField] private TMP_Text rightPythonXText;
     [SerializeField] private TMP_Text rightPythonYText;
     [SerializeField] private TMP_Text rightPythonZText;
 
-    [Header("RightDock Compare - Unity    FK     ")]
+    [Header("RightDock Compare - Unity vs FK 오차")]
     [SerializeField] private TMP_Text rightErrorFkXText;
     [SerializeField] private TMP_Text rightErrorFkYText;
     [SerializeField] private TMP_Text rightErrorFkZText;
 
-    [Header("RightDock Compare - Unity    Python     ")]
+    [Header("RightDock Compare - Unity vs Python 오차")]
     [SerializeField] private TMP_Text rightErrorPythonXText;
     [SerializeField] private TMP_Text rightErrorPythonYText;
     [SerializeField] private TMP_Text rightErrorPythonZText;
 
-    [Header("RightDock Alarm  ؽ Ʈ")]
+    [Header("RightDock Alarm 텍스트")]
     [SerializeField] private TMP_Text rightAlarmText;
 
-    [Header("ǥ       ")]
+    [Header("표시 문자열")]
     [SerializeField] private string panelTitle = "FR5 Digital Twin Runtime";
     [SerializeField] private string defaultRobotModeLabel = "MANUAL";
     [SerializeField] private string defaultSpeedLabel = "100%";
@@ -115,17 +121,22 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private string pythonPausedLabel = "PAUSED";
     [SerializeField] private string emptyValueLabel = "---";
 
-    [Header("ǥ    ɼ ")]
+    [Header("Command Status Runtime")]
+    [SerializeField] private string lastCommandStatus = "READY";
+    [SerializeField] private string lastQueueStatus = "0";
+    [SerializeField] private string lastMotionStatus = "READY";
+
+    [Header("표시 옵션")]
     [SerializeField] private bool showRuntimeMessageAsAlarm = false;
     [SerializeField] private bool showPythonPausedWhenMissing = true;
 
-    [Header("         ")]
+    [Header("상태 색상")]
     [SerializeField] private Color connectedColor = new Color(0.0f, 0.85f, 0.55f, 1.0f);
     [SerializeField] private Color disconnectedColor = new Color(0.75f, 0.2f, 0.2f, 1.0f);
     [SerializeField] private Color validColor = new Color(0.1f, 0.9f, 0.6f, 1.0f);
     [SerializeField] private Color invalidColor = new Color(0.95f, 0.55f, 0.15f, 1.0f);
 
-    [Header("TopBar          ")]
+    [Header("TopBar 블록 색상")]
     [SerializeField] private Color liveModeBlockColor = new Color(0.10f, 0.55f, 0.90f, 0.95f);
     [SerializeField] private Color simModeBlockColor = new Color(0.22f, 0.32f, 0.45f, 0.95f);
     [SerializeField] private Color sourceBlockColor = new Color(0.18f, 0.30f, 0.48f, 0.95f);
@@ -136,11 +147,11 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private Color connectionBlockStaticColor = new Color(0.18f, 0.30f, 0.48f, 0.95f);
     [SerializeField] private Color validBlockStaticColor = new Color(0.18f, 0.30f, 0.48f, 0.95f);
 
-    [Header(" ؽ Ʈ     ")]
+    [Header("텍스트 색상")]
     [SerializeField] private Color labelColor = new Color(0.76f, 0.84f, 0.90f, 0.92f);
     [SerializeField] private Color valueColor = Color.white;
 
-    [Header("      ɼ ")]
+    [Header("자동 갱신 옵션")]
     [SerializeField] private bool autoRefreshInUpdate = true;
     [SerializeField] private float refreshIntervalSeconds = 0.1f;
 
@@ -180,6 +191,33 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         }
     }
 
+    public void SetCommandMotionStatus(string commandStatus, string motionStatus, int queueCount = 0)
+    {
+        lastCommandStatus = string.IsNullOrWhiteSpace(commandStatus)
+            ? "READY"
+            : commandStatus.ToUpperInvariant();
+
+        lastMotionStatus = string.IsNullOrWhiteSpace(motionStatus)
+            ? "READY"
+            : motionStatus.ToUpperInvariant();
+
+        lastQueueStatus = Mathf.Max(0, queueCount).ToString();
+
+        ApplyCommandMotionStatusValues();
+    }
+
+    public void ResetCommandMotionStatus()
+    {
+        SetCommandMotionStatus("READY", "READY", 0);
+    }
+
+    private void ApplyCommandMotionStatusValues()
+    {
+        SetValue(rightCommandStatusText, $"COMMAND : {lastCommandStatus}");
+        SetValue(rightQueueStatusText, $"QUEUE : {lastQueueStatus}");
+        SetValue(rightMotionStatusText, $"MOTION : {lastMotionStatus}");
+    }
+
     public void RefreshUI()
     {
         ApplyStaticLabels();
@@ -189,6 +227,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         if (runtimeSyncManager == null)
         {
             ApplyNoReferenceState();
+            ApplyCommandMotionStatusValues();
             return;
         }
 
@@ -254,6 +293,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         ApplyConnectionStatusLabels(connected, sampleValid);
 
         ApplyBlockColors(formattedMode, formattedRobotState);
+        ApplyCommandMotionStatusValues();
     }
 
     private void ApplyTopBarValues(

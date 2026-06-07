@@ -49,6 +49,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         {
             float[] homeTarget = GetHomeCommandJointTarget();
             bool published = TryPublishRos2Home(homeTarget);
+
+            if (published)
+            {
+                SetRuntimeCommandStatus("HOME SENT", "MOVING", 0);
+            }
+
             WriteLog(published ? "ROS2 HOME command published." : "ROS2 HOME publish failed.");
             RefreshLinkedUI();
             return;
@@ -77,6 +83,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         {
             float[] resetTarget = GetResetCommandJointTarget();
             bool published = TryPublishRos2Reset(resetTarget);
+
+            if (published)
+            {
+                SetRuntimeCommandStatus("RESET SENT", "MOVING", 0);
+            }
+
             WriteLog(published ? "ROS2 RESET command published." : "ROS2 RESET publish failed.");
             RefreshLinkedUI();
             return;
@@ -133,6 +145,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         if (IsRos2JointStateSourceActive())
         {
             bool published = TryPublishRos2MoveJ(jointTarget);
+
+            if (published)
+            {
+                SetRuntimeCommandStatus("MOVE_J SENT", "MOVING", 0);
+            }
+
             WriteLog(published ? "ROS2 MOVE_J command published." : "ROS2 MOVE_J publish failed.");
             RefreshLinkedUI();
             return;
@@ -190,6 +208,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         if (IsRos2JointStateSourceActive())
         {
             bool published = TryPublishRos2Stop();
+
+            if (published)
+            {
+                SetRuntimeCommandStatus("STOP SENT", "HOLD", 0);
+            }
+
             WriteLog(published ? "ROS2 STOP command published." : "ROS2 STOP publish failed.");
             RefreshLinkedUI();
             return;
@@ -1042,6 +1066,16 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         }
 
         return publisher.PublishReset(resetTarget, GetCommandSpeedPercent());
+    }
+
+    private void SetRuntimeCommandStatus(string commandStatus, string motionStatus, int queueCount = 0)
+    {
+        // RuntimeStatusPanelUI가 연결되어 있으면 오른쪽 STATUS 영역의
+        // COMMAND / QUEUE / MOTION 표시를 갱신합니다.
+        if (runtimeStatusPanelUI != null)
+        {
+            runtimeStatusPanelUI.SetCommandMotionStatus(commandStatus, motionStatus, queueCount);
+        }
     }
 
     private void WriteLog(string message)
