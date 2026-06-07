@@ -52,7 +52,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
             if (published)
             {
-                SetRuntimeCommandStatus("HOME SENT", "MOVING", 0);
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("HOME", published),
+                    GetMotionStatusAfterCommand(published),
+                    0,
+                    true
+                );
             }
 
             WriteLog(published ? "ROS2 HOME command published." : "ROS2 HOME publish failed.");
@@ -86,7 +91,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
             if (published)
             {
-                SetRuntimeCommandStatus("RESET SENT", "MOVING", 0);
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("RESET", published),
+                    GetMotionStatusAfterCommand(published),
+                    0,
+                    true
+                );
             }
 
             WriteLog(published ? "ROS2 RESET command published." : "ROS2 RESET publish failed.");
@@ -148,7 +158,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
             if (published)
             {
-                SetRuntimeCommandStatus("MOVE_J SENT", "MOVING", 0);
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("MOVE_J", published),
+                    GetMotionStatusAfterCommand(published),
+                    0,
+                    true
+                );
             }
 
             WriteLog(published ? "ROS2 MOVE_J command published." : "ROS2 MOVE_J publish failed.");
@@ -211,7 +226,12 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
             if (published)
             {
-                SetRuntimeCommandStatus("STOP SENT", "HOLD", 0, false);
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("STOP", published),
+                    GetMotionStatusAfterCommand(published, true),
+                    0,
+                    false
+                );
             }
 
             WriteLog(published ? "ROS2 STOP command published." : "ROS2 STOP publish failed.");
@@ -1086,5 +1106,49 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         {
             bottomBarUI.SetLogMessage(message);
         }
+    }
+
+    private bool IsRos2FeedbackReady()
+    {
+        // ROS2 JointState source가 아니면 ROS2 feedback ready로 보지 않습니다.
+        if (!IsRos2JointStateSourceActive())
+        {
+            return false;
+        }
+
+        // RuntimeSyncManager가 없으면 정확한 상태를 판단할 수 없습니다.
+        if (runtimeSyncManager == null)
+        {
+            return false;
+        }
+
+        // /joint_states sample이 유효해야 실제 ROS2 feedback이 살아있다고 판단합니다.
+        return runtimeSyncManager.LastSampleValid;
+    }
+
+    private string GetMotionStatusAfterCommand(bool published, bool holdWhenReady = false)
+    {
+        if (!published)
+        {
+            return "READY";
+        }
+
+        if (!IsRos2FeedbackReady())
+        {
+            return "WAITING ROS2";
+        }
+
+        return holdWhenReady ? "HOLD" : "MOVING";
+    }
+
+    private string GetCommandStatusAfterPublish(string commandName, bool published)
+    {
+        string normalizedCommand = string.IsNullOrWhiteSpace(commandName)
+            ? "COMMAND"
+            : commandName.ToUpperInvariant();
+
+        return published
+            ? $"{normalizedCommand} SENT"
+            : $"{normalizedCommand} FAILED";
     }
 }
