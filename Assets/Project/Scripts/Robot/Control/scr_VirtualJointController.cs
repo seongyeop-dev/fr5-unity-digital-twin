@@ -46,7 +46,7 @@ public class scr_VirtualJointController : MonoBehaviour
     [SerializeField] private LocalAxis j6Axis = LocalAxis.Y;
 
     [Header("관절 방향 부호")]
-    [SerializeField] private float j1Sign = 1f;
+    [SerializeField] private float j1Sign = -1f;
     [SerializeField] private float j2Sign = -1f;
     [SerializeField] private float j3Sign = -1f;
     [SerializeField] private float j4Sign = -1f;
