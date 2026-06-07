@@ -126,6 +126,13 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     [SerializeField] private string lastQueueStatus = "0";
     [SerializeField] private string lastMotionStatus = "READY";
 
+    [Header("Command Status Auto Clear")]
+    [SerializeField] private bool autoClearCommandStatus = true;
+    [SerializeField] private float commandStatusAutoClearSeconds = 3.0f;
+
+    private bool commandStatusAutoClearActive = false;
+    private float commandStatusClearTime = -1f;
+
     [Header("표시 옵션")]
     [SerializeField] private bool showRuntimeMessageAsAlarm = false;
     [SerializeField] private bool showPythonPausedWhenMissing = true;
@@ -164,6 +171,8 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
     private void Update()
     {
+        CheckCommandStatusAutoClear();
+
         if (!autoRefreshInUpdate)
         {
             return;
@@ -191,7 +200,11 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         }
     }
 
-    public void SetCommandMotionStatus(string commandStatus, string motionStatus, int queueCount = 0)
+    public void SetCommandMotionStatus(
+        string commandStatus,
+        string motionStatus,
+        int queueCount = 0,
+        bool autoClear = true)
     {
         lastCommandStatus = string.IsNullOrWhiteSpace(commandStatus)
             ? "READY"
@@ -203,12 +216,40 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
         lastQueueStatus = Mathf.Max(0, queueCount).ToString();
 
+        bool shouldAutoClear =
+            autoClearCommandStatus &&
+            autoClear &&
+            !string.Equals(lastCommandStatus, "READY", System.StringComparison.OrdinalIgnoreCase);
+
+        commandStatusAutoClearActive = shouldAutoClear;
+        commandStatusClearTime = shouldAutoClear
+            ? Time.time + Mathf.Max(0.2f, commandStatusAutoClearSeconds)
+            : -1f;
+
         ApplyCommandMotionStatusValues();
     }
 
     public void ResetCommandMotionStatus()
     {
         SetCommandMotionStatus("READY", "READY", 0);
+    }
+
+    private void CheckCommandStatusAutoClear()
+    {
+        if (!commandStatusAutoClearActive)
+        {
+            return;
+        }
+
+        if (Time.time < commandStatusClearTime)
+        {
+            return;
+        }
+
+        commandStatusAutoClearActive = false;
+        commandStatusClearTime = -1f;
+
+        ResetCommandMotionStatus();
     }
 
     private void ApplyCommandMotionStatusValues()

@@ -211,7 +211,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
             if (published)
             {
-                SetRuntimeCommandStatus("STOP SENT", "HOLD", 0);
+                SetRuntimeCommandStatus("STOP SENT", "HOLD", 0, false);
             }
 
             WriteLog(published ? "ROS2 STOP command published." : "ROS2 STOP publish failed.");
@@ -1068,13 +1068,15 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         return publisher.PublishReset(resetTarget, GetCommandSpeedPercent());
     }
 
-    private void SetRuntimeCommandStatus(string commandStatus, string motionStatus, int queueCount = 0)
+    private void SetRuntimeCommandStatus(
+        string commandStatus,
+        string motionStatus,
+        int queueCount = 0,
+        bool autoClear = true)
     {
-        // RuntimeStatusPanelUI가 연결되어 있으면 오른쪽 STATUS 영역의
-        // COMMAND / QUEUE / MOTION 표시를 갱신합니다.
         if (runtimeStatusPanelUI != null)
         {
-            runtimeStatusPanelUI.SetCommandMotionStatus(commandStatus, motionStatus, queueCount);
+            runtimeStatusPanelUI.SetCommandMotionStatus(commandStatus, motionStatus, queueCount, autoClear);
         }
     }
 
