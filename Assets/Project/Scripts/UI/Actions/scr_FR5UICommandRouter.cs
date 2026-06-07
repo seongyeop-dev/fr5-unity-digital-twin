@@ -929,14 +929,19 @@ public class scr_FR5UICommandRouter : MonoBehaviour
     {
         if (jointPanelUI != null)
         {
-            return jointPanelUI.GetTargetAnglesCopy();
+            float[] panelTarget = jointPanelUI.GetTargetAnglesCopy();
+            Debug.Log($"[FR5UICommandRouter] MOVE_J target from JointPanelUI: [{string.Join(", ", panelTarget)}]");
+            return panelTarget;
         }
 
         if (robotController != null)
         {
-            return robotController.GetCurrentJointArray();
+            float[] controllerTarget = robotController.GetCurrentJointArray();
+            Debug.LogWarning($"[FR5UICommandRouter] JointPanelUI is not assigned. MOVE_J target from RobotController: [{string.Join(", ", controllerTarget)}]");
+            return controllerTarget;
         }
 
+        Debug.LogWarning("[FR5UICommandRouter] JointPanelUI and RobotController are not assigned. MOVE_J target fallback is zero.");
         return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
     }
 

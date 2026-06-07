@@ -346,14 +346,80 @@ public class scr_FR5JointPanelUI : MonoBehaviour
 
     public float[] GetTargetAnglesCopy()
     {
+        // MOVE_J command must use the latest command target shown in the UI.
+        // In LiveMonitor mode, actual joint feedback can refresh the panel every frame,
+        // so this method refreshes targetJointAngles from the visible UI controls
+        // before returning the command payload.
         float[] copy = new float[6];
 
         for (int i = 0; i < 6; i++)
         {
+            float uiValue;
+
+            if (TryReadJointRowValue(i, out uiValue))
+            {
+                targetJointAngles[i] = Mathf.Clamp(
+                    uiValue,
+                    robotController != null ? robotController.GetJointMinAngle(i) : -360f,
+                    robotController != null ? robotController.GetJointMaxAngle(i) : 360f
+                );
+            }
+
             copy[i] = targetJointAngles[i];
         }
 
+        if (enableDebugLog)
+        {
+            Debug.Log($"[FR5JointPanelUI] GetTargetAnglesCopy: [{string.Join(", ", copy)}]");
+        }
+
         return copy;
+    }
+
+    private bool TryReadJointRowValue(int index, out float value)
+    {
+        value = 0f;
+
+        if (jointRows == null || index < 0 || index >= jointRows.Length)
+        {
+            return false;
+        }
+
+        JointRowUIBinding row = jointRows[index];
+
+        if (row == null)
+        {
+            return false;
+        }
+
+        if (row.inputField != null && TryParseFloat(row.inputField.text, out value))
+        {
+            return true;
+        }
+
+        if (row.slider != null)
+        {
+            value = row.slider.value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryParseFloat(string rawText, out float value)
+    {
+        if (float.TryParse(rawText, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+        {
+            return true;
+        }
+
+        if (float.TryParse(rawText, NumberStyles.Float, CultureInfo.CurrentCulture, out value))
+        {
+            return true;
+        }
+
+        value = 0f;
+        return false;
     }
 
     public string GetFormattedTargetSummary()
