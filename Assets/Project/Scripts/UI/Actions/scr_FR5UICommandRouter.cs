@@ -75,7 +75,8 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         // Unity visual pose must continue following /joint_states.
         if (IsRos2JointStateSourceActive())
         {
-            bool published = TryPublishRos2Reset();
+            float[] resetTarget = GetResetCommandJointTarget();
+            bool published = TryPublishRos2Reset(resetTarget);
             WriteLog(published ? "ROS2 RESET command published." : "ROS2 RESET publish failed.");
             RefreshLinkedUI();
             return;
@@ -959,6 +960,19 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
     }
 
+    private float[] GetResetCommandJointTarget()
+    {
+        if (jointPanelUI != null)
+        {
+            float[] resetTarget = jointPanelUI.ApplyResetZeroPresetForCommand();
+            Debug.Log($"[FR5UICommandRouter] RESET target from JointPanelUI: [{string.Join(", ", resetTarget)}]");
+            return resetTarget;
+        }
+
+        Debug.LogWarning("[FR5UICommandRouter] JointPanelUI is not assigned. RESET target fallback is zero.");
+        return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
+    }
+
     private int GetCommandSpeedPercent()
     {
         return cSharpSdkClient != null ? cSharpSdkClient.GetCommandSpeedPercent() : 100;
@@ -1018,7 +1032,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         return publisher.PublishHome(homeTarget, GetCommandSpeedPercent());
     }
 
-    private bool TryPublishRos2Reset()
+    private bool TryPublishRos2Reset(float[] resetTarget)
     {
         scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
 
@@ -1027,7 +1041,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
             return false;
         }
 
-        return publisher.PublishReset();
+        return publisher.PublishReset(resetTarget, GetCommandSpeedPercent());
     }
 
     private void WriteLog(string message)

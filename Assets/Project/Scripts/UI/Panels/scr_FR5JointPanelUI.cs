@@ -351,6 +351,19 @@ public class scr_FR5JointPanelUI : MonoBehaviour
         return GetTargetAnglesCopy();
     }
 
+    public float[] ApplyResetZeroPresetForCommand()
+    {
+        EnterCommandEditFromCurrentPose();
+
+        float[] zeroPreset = new float[]
+        {
+        0f, 0f, 0f, 0f, 0f, 0f
+        };
+
+        ApplyPreset(zeroPreset);
+        return GetTargetAnglesCopy();
+    }
+
     public float[] GetTargetAnglesCopy()
     {
         // MOVE_J command must use the latest command target shown in the UI.

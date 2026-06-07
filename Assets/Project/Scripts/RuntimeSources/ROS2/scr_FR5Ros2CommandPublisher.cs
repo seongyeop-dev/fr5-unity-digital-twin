@@ -48,9 +48,9 @@ public class scr_FR5Ros2CommandPublisher : MonoBehaviour
         return PublishCommand("HOME", NormalizeJoints(jointsDeg), speedPercent);
     }
 
-    public bool PublishReset()
+    public bool PublishReset(float[] jointsDeg, int speedPercent)
     {
-        return PublishCommand("RESET", null, 0);
+        return PublishCommand("RESET", NormalizeJoints(jointsDeg), speedPercent);
     }
 
     private bool PublishCommand(string commandName, float[] jointsDeg, int speedPercent)
