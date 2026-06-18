@@ -72,3 +72,25 @@ Unity Button
 - Ubuntu ROS2 workspace: `~/fr5_ros2_ws`
 
 이 세 영역은 역할이 다릅니다. Windows 루트에 `fr5_ros2_ws`가 없더라도, Unity ROS2 연동 코드는 Unity project 안에 존재합니다.
+
+---
+
+## 2026-06-07 Update - Live Sync Validation Status
+
+Current verified integration path:
+
+```text
+Gazebo /joint_states
+-> ros_tcp_endpoint on Ubuntu laptop
+-> Unity ROSConnection on home PC
+-> ROS2 Joint State Runtime Source
+-> Unity FR5 Visual
+```
+
+Validation status:
+
+```text
+J1~J6 direction sync: complete
+J1 default position-controller feedback: known Gazebo issue
+J1 effort-only diagnostic config: available
+```

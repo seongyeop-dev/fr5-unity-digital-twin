@@ -26,6 +26,16 @@ public class scr_FR5UICommandRouter : MonoBehaviour
     [SerializeField] private scr_FR5UnityReplayJointStateSource unityReplaySource;
     [SerializeField] private scr_FR5Ros2CommandPublisher ros2CommandPublisher;
 
+    [Header("Local Gripper Visual")]
+    [SerializeField] private Transform gripperJawA;
+    [SerializeField] private Transform gripperJawB;
+    [SerializeField] private float gripperSmallCloseOffset = 0.0001f;
+    [SerializeField] private float gripperNormalCloseOffset = 0.0002f;
+
+    private Vector3 gripperJawAOpenLocalPosition;
+    private Vector3 gripperJawBOpenLocalPosition;
+    private bool gripperOpenPoseCaptured = false;
+
     [Header("Speed UI")]
     [SerializeField] private TMP_Text commandSpeedText;
 
@@ -34,9 +44,10 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
     private void Start()
     {
+        ResolveGripperJawReferences();
+        CaptureGripperOpenPoseIfNeeded();
         RefreshLinkedUI();
     }
-
     // ------------------------------------------------------------
     // LEFT / OPERATE ¸í·É
     // ------------------------------------------------------------
@@ -695,20 +706,107 @@ public class scr_FR5UICommandRouter : MonoBehaviour
 
     public void OnClickGripperOpen()
     {
-        WriteLog("Gripper command requested: OPEN.");
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2GripperOpen();
+
+            if (published)
+            {
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("GRIPPER_OPEN", published),
+                    GetMotionStatusAfterCommand(published),
+                    0,
+                    true
+                );
+            }
+
+            ApplyLocalGripperVisual(0.0f, "OPEN");
+            RefreshLinkedUI();
+            return;
+        }
+
+        ApplyLocalGripperVisual(0.0f, "OPEN");
+        RefreshLinkedUI();
+    }
+
+    public void OnClickGripperSmallClose()
+    {
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2GripperSmallClose();
+
+            if (published)
+            {
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("GRIPPER_SMALL_CLOSE", published),
+                    GetMotionStatusAfterCommand(published),
+                    0,
+                    true
+                );
+            }
+
+            WriteLog(published ? "ROS2 GRIPPER_SMALL_CLOSE command published." : "ROS2 GRIPPER_SMALL_CLOSE publish failed.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        ApplyLocalGripperVisual(gripperSmallCloseOffset, "SMALL CLOSE");
+        RefreshLinkedUI();
+    }
+
+    public void OnClickGripperNormalClose()
+    {
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2GripperNormalClose();
+
+            if (published)
+            {
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("GRIPPER_NORMAL_CLOSE", published),
+                    GetMotionStatusAfterCommand(published),
+                    0,
+                    true
+                );
+            }
+
+            WriteLog(published ? "ROS2 GRIPPER_NORMAL_CLOSE command published." : "ROS2 GRIPPER_NORMAL_CLOSE publish failed.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        ApplyLocalGripperVisual(gripperNormalCloseOffset, "NORMAL CLOSE");
+        RefreshLinkedUI();
+    }
+
+    public void OnClickGripperReturnOpen()
+    {
+        if (IsRos2JointStateSourceActive())
+        {
+            bool published = TryPublishRos2GripperReturnOpen();
+
+            if (published)
+            {
+                SetRuntimeCommandStatus(
+                    GetCommandStatusAfterPublish("GRIPPER_RETURN_OPEN", published),
+                    GetMotionStatusAfterCommand(published),
+                    0,
+                    true
+                );
+            }
+
+            WriteLog(published ? "ROS2 GRIPPER_RETURN_OPEN command published." : "ROS2 GRIPPER_RETURN_OPEN publish failed.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        ApplyLocalGripperVisual(0.0f, "RETURN OPEN");
         RefreshLinkedUI();
     }
 
     public void OnClickGripperClose()
     {
-        WriteLog("Gripper command requested: CLOSE.");
-        RefreshLinkedUI();
-    }
-
-    public void OnClickRefreshIO()
-    {
-        WriteLog("IO status refresh requested.");
-        RefreshLinkedUI();
+        OnClickGripperNormalClose();
     }
 
     // ------------------------------------------------------------
@@ -1017,6 +1115,87 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         return new float[] { 0f, 0f, 0f, 0f, 0f, 0f };
     }
 
+    private bool ResolveGripperJawReferences()
+    {
+        if (gripperJawA == null)
+        {
+            gripperJawA = FindSceneTransformByName("Jaw_A");
+        }
+
+        if (gripperJawB == null)
+        {
+            gripperJawB = FindSceneTransformByName("Jaw_B");
+        }
+
+        return gripperJawA != null && gripperJawB != null;
+    }
+
+    private Transform FindSceneTransformByName(string targetName)
+    {
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+
+        foreach (Transform candidate in transforms)
+        {
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            if (!candidate.gameObject.scene.IsValid())
+            {
+                continue;
+            }
+
+            if (candidate.name == targetName)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private void CaptureGripperOpenPoseIfNeeded()
+    {
+        if (gripperOpenPoseCaptured)
+        {
+            return;
+        }
+
+        if (!ResolveGripperJawReferences())
+        {
+            Debug.LogWarning("[FR5UICommandRouter] Gripper Jaw_A or Jaw_B is not assigned.");
+            return;
+        }
+
+        gripperJawAOpenLocalPosition = gripperJawA.localPosition;
+        gripperJawBOpenLocalPosition = gripperJawB.localPosition;
+        gripperOpenPoseCaptured = true;
+    }
+
+    private bool ApplyLocalGripperVisual(float closeOffset, string label)
+    {
+        if (!ResolveGripperJawReferences())
+        {
+            WriteLog("Local gripper visual failed: Jaw_A or Jaw_B is not assigned.");
+            return false;
+        }
+
+        CaptureGripperOpenPoseIfNeeded();
+
+        if (!gripperOpenPoseCaptured)
+        {
+            WriteLog("Local gripper visual failed: open pose is not captured.");
+            return false;
+        }
+
+        gripperJawA.localPosition = gripperJawAOpenLocalPosition + new Vector3(-closeOffset, 0f, 0f);
+        gripperJawB.localPosition = gripperJawBOpenLocalPosition + new Vector3(closeOffset, 0f, 0f);
+
+        WriteLog($"Local gripper visual applied: {label} / offset {closeOffset:0.###}m.");
+        return true;
+    }
+
     private int GetCommandSpeedPercent()
     {
         return cSharpSdkClient != null ? cSharpSdkClient.GetCommandSpeedPercent() : 100;
@@ -1086,6 +1265,54 @@ public class scr_FR5UICommandRouter : MonoBehaviour
         }
 
         return publisher.PublishReset(resetTarget, GetCommandSpeedPercent());
+    }
+
+    private bool TryPublishRos2GripperOpen()
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishGripperOpen(GetCommandSpeedPercent());
+    }
+
+    private bool TryPublishRos2GripperSmallClose()
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishGripperSmallClose(GetCommandSpeedPercent());
+    }
+
+    private bool TryPublishRos2GripperNormalClose()
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishGripperNormalClose(GetCommandSpeedPercent());
+    }
+
+    private bool TryPublishRos2GripperReturnOpen()
+    {
+        scr_FR5Ros2CommandPublisher publisher = ResolveRos2CommandPublisher();
+
+        if (publisher == null)
+        {
+            return false;
+        }
+
+        return publisher.PublishGripperReturnOpen(GetCommandSpeedPercent());
     }
 
     private void SetRuntimeCommandStatus(

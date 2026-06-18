@@ -61,6 +61,33 @@ public class scr_FR5Ros2JointStateClient : MonoBehaviour, IFR5RuntimePoseSource
     [SerializeField] private string lastErrorMessage = "None";
     [SerializeField] private string lastJointSummary = "-";
 
+    [Header("Gripper Feedback Visual")]
+    [SerializeField] private bool applyGripperVisualFromJointState = true;
+    [SerializeField] private bool autoResolveGripperJawByName = false;
+    [SerializeField] private Transform gripperJawA;
+    [SerializeField] private Transform gripperJawB;
+
+    [Tooltip("Gazebo jaw joint position is in meters. Unity local offset = jaw position * this scale. 0.02m close -> 0.0002 local when scale is 0.01.")]
+    [SerializeField] private float jawPositionToUnityLocalScale = 0.01f;
+
+    [SerializeField] private bool clampJawPosition = true;
+    [SerializeField] private float minJawPosition = 0f;
+    [SerializeField] private float maxJawPosition = 0.02f;
+
+    [SerializeField] private Vector3 jawAClosedLocalDirection = Vector3.right;
+    [SerializeField] private Vector3 jawBClosedLocalDirection = Vector3.left;
+    [SerializeField] private string jawAJointName = "jaw_a_joint";
+    [SerializeField] private string jawBJointName = "jaw_b_joint";
+
+    [Header("Gripper Feedback Status")]
+    [SerializeField] private bool latestJawPositionReceived = false;
+    [SerializeField] private float latestJawAPosition = 0f;
+    [SerializeField] private float latestJawBPosition = 0f;
+
+    private Vector3 gripperJawAOpenLocalPosition;
+    private Vector3 gripperJawBOpenLocalPosition;
+    private bool gripperOpenPoseCaptured = false;
+
     private ROSConnection rosConnection;
     private bool latestMessageReceived = false;
     private float lastMessageUnityTime = -1f;
@@ -78,9 +105,15 @@ public class scr_FR5Ros2JointStateClient : MonoBehaviour, IFR5RuntimePoseSource
     public bool ConnectToTcpEndpointWhenSelected => connectToTcpEndpointWhenSelected;
     public bool LatestMessageReceived => latestMessageReceived;
     public string LastJointSummary => lastJointSummary;
+    public bool LatestJawPositionReceived => latestJawPositionReceived;
+    public float LatestJawAPosition => latestJawAPosition;
+    public float LatestJawBPosition => latestJawBPosition;
 
     private void Start()
     {
+        ResolveGripperJawReferences();
+        CaptureGripperOpenPoseIfNeeded();
+
         if (autoConnectOnStart)
         {
             Connect();
@@ -107,6 +140,7 @@ public class scr_FR5Ros2JointStateClient : MonoBehaviour, IFR5RuntimePoseSource
         latestMessageReceived = false;
         latestSample = FR5SdkPoseSample.CreateInvalid("ROS2");
         lastJointSummary = "-";
+        latestJawPositionReceived = false;
 
         if (!connectToTcpEndpointWhenSelected)
         {
@@ -158,6 +192,7 @@ public class scr_FR5Ros2JointStateClient : MonoBehaviour, IFR5RuntimePoseSource
         latestMessageReceived = false;
         latestSample = FR5SdkPoseSample.CreateInvalid("ROS2");
         lastJointSummary = "-";
+        latestJawPositionReceived = false;
 
         if (unsubscribeTopicOnDisconnect)
         {
@@ -328,6 +363,14 @@ public class scr_FR5Ros2JointStateClient : MonoBehaviour, IFR5RuntimePoseSource
         lastMessageUnityTime = Time.time;
         lastJointSummary = FormatJointSummary(jointDegrees);
 
+        if (TryBuildJawPositions(msg, out float jawA, out float jawB))
+        {
+            latestJawPositionReceived = true;
+            latestJawAPosition = jawA;
+            latestJawBPosition = jawB;
+            ApplyGripperVisualFromFeedback(jawA, jawB);
+        }
+
         SetPollStatus(true, true, "ROS2 JointState received.", "ROS2 Live");
 
         if (verboseLog && logEveryReceivedMessage)
@@ -403,6 +446,118 @@ public class scr_FR5Ros2JointStateClient : MonoBehaviour, IFR5RuntimePoseSource
             .Replace("_", "")
             .Replace("-", "")
             .Replace(" ", "");
+    }
+
+    private bool TryBuildJawPositions(JointStateMsg msg, out float jawA, out float jawB)
+    {
+        jawA = 0f;
+        jawB = 0f;
+
+        if (msg == null || msg.name == null || msg.position == null)
+        {
+            return false;
+        }
+
+        bool hasJawA = TryGetJointPosition(msg, jawAJointName, out jawA);
+        bool hasJawB = TryGetJointPosition(msg, jawBJointName, out jawB);
+
+        return hasJawA && hasJawB;
+    }
+
+    private bool TryGetJointPosition(JointStateMsg msg, string jointName, out float position)
+    {
+        position = 0f;
+
+        int msgIndex = FindJointIndex(msg.name, jointName);
+
+        if (msgIndex < 0 || msgIndex >= msg.position.Length)
+        {
+            return false;
+        }
+
+        position = (float)msg.position[msgIndex];
+        return true;
+    }
+
+    private void ApplyGripperVisualFromFeedback(float jawA, float jawB)
+    {
+        if (!applyGripperVisualFromJointState)
+        {
+            return;
+        }
+
+        ResolveGripperJawReferences();
+        CaptureGripperOpenPoseIfNeeded();
+
+        if (!gripperOpenPoseCaptured)
+        {
+            return;
+        }
+
+        if (clampJawPosition)
+        {
+            jawA = Mathf.Clamp(jawA, minJawPosition, maxJawPosition);
+            jawB = Mathf.Clamp(jawB, minJawPosition, maxJawPosition);
+        }
+
+        if (gripperJawA != null)
+        {
+            gripperJawA.localPosition = gripperJawAOpenLocalPosition
+                + jawAClosedLocalDirection.normalized * jawA * jawPositionToUnityLocalScale;
+        }
+
+        if (gripperJawB != null)
+        {
+            gripperJawB.localPosition = gripperJawBOpenLocalPosition
+                + jawBClosedLocalDirection.normalized * jawB * jawPositionToUnityLocalScale;
+        }
+    }
+
+    private void ResolveGripperJawReferences()
+    {
+        if (!autoResolveGripperJawByName)
+        {
+            return;
+        }
+
+        if (gripperJawA == null)
+        {
+            GameObject jawAObject = GameObject.Find("Jaw_A");
+
+            if (jawAObject != null)
+            {
+                gripperJawA = jawAObject.transform;
+            }
+        }
+
+        if (gripperJawB == null)
+        {
+            GameObject jawBObject = GameObject.Find("Jaw_B");
+
+            if (jawBObject != null)
+            {
+                gripperJawB = jawBObject.transform;
+            }
+        }
+    }
+
+    private void CaptureGripperOpenPoseIfNeeded()
+    {
+        if (gripperOpenPoseCaptured)
+        {
+            return;
+        }
+
+        ResolveGripperJawReferences();
+
+        if (gripperJawA == null || gripperJawB == null)
+        {
+            return;
+        }
+
+        gripperJawAOpenLocalPosition = gripperJawA.localPosition;
+        gripperJawBOpenLocalPosition = gripperJawB.localPosition;
+        gripperOpenPoseCaptured = true;
     }
 
     private void SetPollStatus(bool pollSucceeded, bool sampleValid, string message, string robotState)

@@ -78,3 +78,31 @@ The first publish phase uses `std_msgs/String` JSON only. It must not publish ac
 | `log` | colcon logs | 확인 없이 삭제 금지 |
 
 `build/install/log`는 일반적으로 생성 산출물이지만, 현재 workspace 재현성, launch 상태, debugging history에 필요할 수 있습니다. `.gitignore`, symlink install 여부, 실행 재현성을 확인한 뒤 별도 정리해야 합니다.
+
+---
+
+## 2026-06-07 Update - J1 Effort Diagnostic Config
+
+Added stable diagnostic controller config:
+
+```text
+src/fr5_gazebo/config/fr5_controllers_effort_joint1_only_test.yaml
+```
+
+Purpose:
+
+```text
+Isolate J1 because default position-controller feedback does not reliably follow J1 reference.
+```
+
+Usage:
+
+```bash
+ros2 launch fr5_gazebo fr5_gazebo_control.launch.py enable_arm_effort_control:=true controllers_yaml:=fr5_controllers_effort_joint1_only_test.yaml
+```
+
+Baseline operation still uses:
+
+```bash
+ros2 launch fr5_gazebo fr5_gazebo_control.launch.py
+```

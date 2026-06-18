@@ -50,3 +50,20 @@
 - Scene 참조 가능성이 있는 `.cs` 파일은 `.meta`와 함께 관리되어야 합니다.
 - Unity Editor 밖에서 스크립트를 이동하면 GUID/Scene 참조 문제가 생길 수 있습니다.
 - `New` 폴더는 이름상 legacy 후보지만 삭제 대상이 아닙니다. Scene 참조 여부 확인 전까지 `Keep for now`입니다.
+
+---
+
+## 2026-06-07 Update - Unity Visual Sign Script Note
+
+`Assets/Project/Scripts/Robot/Control/scr_VirtualJointController.cs` now stores the current Gazebo sync visual sign convention:
+
+```text
+J1 Sign = -1
+J2 Sign = -1
+J3 Sign = -1
+J4 Sign = -1
+J5 Sign = -1
+J6 Sign = -1
+```
+
+The 2026-06-07 change specifically corrected `j1Sign` from `1f` to `-1f` after J1 effort-only Gazebo validation.

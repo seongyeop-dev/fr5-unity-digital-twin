@@ -53,14 +53,40 @@ public class scr_FR5Ros2CommandPublisher : MonoBehaviour
         return PublishCommand("RESET", NormalizeJoints(jointsDeg), speedPercent);
     }
 
-    private bool PublishCommand(string commandName, float[] jointsDeg, int speedPercent)
+    public bool PublishGripperOpen(int speedPercent)
+    {
+        return PublishGripperCommand("GRIPPER_OPEN", 0.0f, speedPercent);
+    }
+
+    public bool PublishGripperSmallClose(int speedPercent)
+    {
+        return PublishGripperCommand("GRIPPER_SMALL_CLOSE", 0.01f, speedPercent);
+    }
+
+    public bool PublishGripperNormalClose(int speedPercent)
+    {
+        return PublishGripperCommand("GRIPPER_NORMAL_CLOSE", 0.02f, speedPercent);
+    }
+
+    public bool PublishGripperReturnOpen(int speedPercent)
+    {
+        return PublishGripperCommand("GRIPPER_RETURN_OPEN", 0.0f, speedPercent);
+    }
+
+    private bool PublishGripperCommand(string commandName, float jawPosition, int speedPercent)
+    {
+        float[] jawPositions = new float[] { jawPosition, jawPosition };
+        return PublishCommand(commandName, null, speedPercent, jawPositions);
+    }
+
+    private bool PublishCommand(string commandName, float[] jointsDeg, int speedPercent, float[] jawPositions = null)
     {
         if (!EnsurePublisherRegistered())
         {
             return false;
         }
 
-        string json = BuildCommandJson(commandName, jointsDeg, speedPercent);
+        string json = BuildCommandJson(commandName, jointsDeg, speedPercent, jawPositions);
 
         try
         {
@@ -120,7 +146,7 @@ public class scr_FR5Ros2CommandPublisher : MonoBehaviour
         }
     }
 
-    private string BuildCommandJson(string commandName, float[] jointsDeg, int speedPercent)
+    private string BuildCommandJson(string commandName, float[] jointsDeg, int speedPercent, float[] jawPositions = null)
     {
         StringBuilder builder = new StringBuilder();
         builder.Append("{");
@@ -132,6 +158,13 @@ public class scr_FR5Ros2CommandPublisher : MonoBehaviour
         {
             builder.Append("\"joints_deg\":");
             AppendFloatArray(builder, jointsDeg);
+            builder.Append(",");
+        }
+
+        if (jawPositions != null)
+        {
+            builder.Append("\"jaw_positions\":");
+            AppendFloatArray(builder, jawPositions);
             builder.Append(",");
         }
 
