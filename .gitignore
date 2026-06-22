@@ -32,3 +32,6 @@ Recordings/
 Assets/Model/FR5/CAD/*.zip
 Assets/Model/FR5/CAD/*.7z
 Assets/Model/FR5/CAD/*.rar
+# Unity local recovery / temporary backups
+Assets/_Recovery/
+*.bak_*
