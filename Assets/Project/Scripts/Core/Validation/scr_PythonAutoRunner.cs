@@ -7,6 +7,7 @@ public class scr_PythonAutoRunner : MonoBehaviour
 {
     [Header("Reference")]
     [SerializeField] private scr_FR5RobotManualController fr5Controller;
+    [SerializeField] private scr_FR5RuntimeSyncManager runtimeSyncManager;
     [SerializeField] private scr_TCPCompareManager tcpCompareManager;
     [SerializeField] private scr_FR5ValidationManager validationManager;
 
@@ -26,6 +27,23 @@ public class scr_PythonAutoRunner : MonoBehaviour
     public void RunLiveValidationFromInspector()
     {
         RunLiveValidation();
+    }
+
+    [ContextMenu("Export Current Joint To Python Input")]
+    public void ExportCurrentJointToPythonInputFromInspector()
+    {
+        ExportCurrentJointToPythonInput();
+    }
+
+    public bool ExportCurrentJointToPythonInput()
+    {
+        if (fr5Controller == null)
+        {
+            UnityEngine.Debug.LogError("[PythonAutoRunner] FR5 Controller is not assigned.");
+            return false;
+        }
+
+        return SaveCurrentJointToStreamingAssets();
     }
 
     public bool RunLiveValidation()
@@ -69,7 +87,10 @@ public class scr_PythonAutoRunner : MonoBehaviour
 
     private bool SaveCurrentJointToStreamingAssets()
     {
+        RefreshActiveSourceSnapshotBeforeExport();
+
         float[] joints = fr5Controller.GetCurrentJointArray();
+        string sourceLabel = GetActiveSourceLabel();
 
         if (joints == null || joints.Length != 6)
         {
@@ -92,10 +113,45 @@ public class scr_PythonAutoRunner : MonoBehaviour
 
         if (verboseLog)
         {
-            UnityEngine.Debug.Log($"[PythonAutoRunner] Saved live joint file: {filePath}");
+            UnityEngine.Debug.Log($"[PythonAutoRunner] Saved live joint file from active source [{sourceLabel}]: {filePath}");
         }
 
         return true;
+    }
+
+    private void RefreshActiveSourceSnapshotBeforeExport()
+    {
+        if (runtimeSyncManager == null)
+        {
+            return;
+        }
+
+        if (runtimeSyncManager.InputMode != scr_FR5RuntimeSyncManager.RuntimeInputMode.LiveRuntimeSource)
+        {
+            return;
+        }
+
+        bool synced = runtimeSyncManager.SyncLiveOnce();
+
+        if (!synced && verboseLog)
+        {
+            UnityEngine.Debug.LogWarning("[PythonAutoRunner] Active runtime source sync failed before export. Exporting the last valid Unity joint snapshot.");
+        }
+    }
+
+    private string GetActiveSourceLabel()
+    {
+        if (runtimeSyncManager == null)
+        {
+            return "Manual/Unity";
+        }
+
+        if (runtimeSyncManager.InputMode != scr_FR5RuntimeSyncManager.RuntimeInputMode.LiveRuntimeSource)
+        {
+            return "Manual/Unity";
+        }
+
+        return runtimeSyncManager.GetFormattedSourceLabel();
     }
 
     private bool ExecutePythonSingleRunner()
@@ -213,7 +269,7 @@ public class scr_PythonAutoRunner : MonoBehaviour
             }
             catch
             {
-                // ´ÙÀ½ ÈÄº¸ °è¼Ó Å½»ö
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½Äºï¿½ ï¿½ï¿½ï¿½ Å½ï¿½ï¿½
             }
         }
 

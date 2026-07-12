@@ -6,12 +6,12 @@ using UnityEngine.UI;
 /// <summary>
 /// FR5 Joint Panel UI
 ///
-/// ¿ªÇÒ:
-/// 1. Joint Panel ÇÏ³ª¸¦ LIVE / COMMAND 2¸ðµå·Î °ü¸®
-/// 2. LIVE ¸ðµå¿¡¼­´Â ½ÇÁ¦ ·Îº¿¿¡¼­ µé¾î¿Â ÇöÀç°ª(actual) Ç¥½Ã
-/// 3. COMMAND ¸ðµå¿¡¼­´Â »ç¿ëÀÚ°¡ ÆíÁýÇÏ´Â ¸ñÇ¥°ª(target) Ç¥½Ã
-/// 4. ½½¶óÀÌ´õ / ÀÔ·Â / -+ ´Â target¸¸ ¼öÁ¤
-/// 5. targetÀº °¡»ó ·Îº¿¿¡ ¹Ì¸®º¸±â·Î Àû¿ëÇÏ°í, ½ÇÁ¦ Àü¼ÛÀº ´ÙÀ½ ´Ü°è¿¡¼­ ¿¬°á
+/// ï¿½ï¿½ï¿½ï¿½:
+/// 1. Joint Panel ï¿½Ï³ï¿½ï¿½ï¿½ LIVE / COMMAND 2ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+/// 2. LIVE ï¿½ï¿½å¿¡ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Îºï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ç°ª(actual) Ç¥ï¿½ï¿½
+/// 3. COMMAND ï¿½ï¿½å¿¡ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ú°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½Ç¥ï¿½ï¿½(target) Ç¥ï¿½ï¿½
+/// 4. ï¿½ï¿½ï¿½ï¿½ï¿½Ì´ï¿½ / ï¿½Ô·ï¿½ / -+ ï¿½ï¿½ targetï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+/// 5. targetï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Îºï¿½ï¿½ï¿½ ï¿½Ì¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½, ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°è¿¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 /// </summary>
 public class scr_FR5JointPanelUI : MonoBehaviour
 {
@@ -154,13 +154,19 @@ public class scr_FR5JointPanelUI : MonoBehaviour
             if (row.minusStepButton != null)
             {
                 row.minusStepButton.onClick.RemoveAllListeners();
-                row.minusStepButton.onClick.AddListener(() => OnClickStep(capturedIndex, -stepDegrees));
+                if (!HasPersistentOnClickListener(row.minusStepButton))
+                {
+                    row.minusStepButton.onClick.AddListener(() => OnClickStep(capturedIndex, -stepDegrees));
+                }
             }
 
             if (row.plusStepButton != null)
             {
                 row.plusStepButton.onClick.RemoveAllListeners();
-                row.plusStepButton.onClick.AddListener(() => OnClickStep(capturedIndex, stepDegrees));
+                if (!HasPersistentOnClickListener(row.plusStepButton))
+                {
+                    row.plusStepButton.onClick.AddListener(() => OnClickStep(capturedIndex, stepDegrees));
+                }
             }
 
             if (row.inputField != null)
@@ -170,6 +176,11 @@ public class scr_FR5JointPanelUI : MonoBehaviour
                 row.inputField.onEndEdit.AddListener(text => OnInputSubmitted(capturedIndex, text));
             }
         }
+    }
+
+    private bool HasPersistentOnClickListener(Button button)
+    {
+        return button != null && button.onClick != null && button.onClick.GetPersistentEventCount() > 0;
     }
 
     private void OnSliderChanged(int index, float value)
@@ -340,7 +351,7 @@ public class scr_FR5JointPanelUI : MonoBehaviour
 
     public void CommitCommandPreviewAndResumeLive()
     {
-        // ÇöÀç ´Ü°è¿¡¼­´Â ½ÇÁ¦ SDK Àü¼Û ¾øÀÌ ¹Ì¸®º¸±â Á¾·á ÈÄ LIVE º¹±Í¸¸ ¼öÇà
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½Ü°è¿¡ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ SDK ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¸ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ LIVE ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½
         ResumeLiveMonitorMode(syncImmediately: true);
     }
 
@@ -364,6 +375,38 @@ public class scr_FR5JointPanelUI : MonoBehaviour
         return GetTargetAnglesCopy();
     }
 
+    public float[] StepJointInputForCommand(int jointIndex, float deltaDegrees)
+    {
+        if (robotController == null)
+        {
+            return GetTargetAnglesCopy();
+        }
+
+        if (jointIndex < 0 || jointIndex >= 6)
+        {
+            Debug.LogWarning($"[FR5JointPanelUI] StepJointInputForCommand ignored. Invalid joint index: {jointIndex}");
+            return GetTargetAnglesCopy();
+        }
+
+        EnterCommandEditFromCurrentPose();
+
+        float nextValue = targetJointAngles[jointIndex] + deltaDegrees;
+        SetTargetAngle(jointIndex, nextValue, previewImmediately: false);
+        SyncAllFromTarget();
+
+        if (enableDebugLog)
+        {
+            Debug.Log($"[FR5JointPanelUI] Joint input stepped | Index={jointIndex} | Delta={deltaDegrees:0.0} | Target={targetJointAngles[jointIndex]:0.0}");
+        }
+
+        return GetTargetAnglesCopy();
+    }
+    public float[] ApplyPosePresetForCommand(float[] presetJointAngles)
+    {
+        EnterCommandEditFromCurrentPose();
+        ApplyPreset(presetJointAngles);
+        return GetTargetAnglesCopy();
+    }
     public float[] GetTargetAnglesCopy()
     {
         // MOVE_J command must use the latest command target shown in the UI.
@@ -587,6 +630,11 @@ public class scr_FR5JointPanelUI : MonoBehaviour
         isInternalSync = false;
     }
 
+    private string FormatJointDegreeForUi(float value)
+    {
+        return value.ToString("0.0", CultureInfo.InvariantCulture);
+    }
+
     private void UpdateRowVisuals(int index, float angle)
     {
         if (jointRows == null || index < 0 || index >= jointRows.Length)
@@ -607,7 +655,7 @@ public class scr_FR5JointPanelUI : MonoBehaviour
 
         if (row.valueText != null)
         {
-            row.valueText.text = $"{angle:0.0}¡Æ";
+            row.valueText.text = FormatJointDegreeForUi(angle);
         }
 
         if (row.inputField != null && !row.inputField.isFocused)

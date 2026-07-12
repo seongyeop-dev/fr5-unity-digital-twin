@@ -675,7 +675,7 @@ public class scr_FR5Ros2JointStateClient : MonoBehaviour, IFR5RuntimePoseSource
         }
 
         return
-            $"[{joints[0]:F1}, {joints[1]:F1}, {joints[2]:F1}, " +
-            $"{joints[3]:F1}, {joints[4]:F1}, {joints[5]:F1}]";
+            $"[{joints[0]:F3}, {joints[1]:F3}, {joints[2]:F3}, " +
+            $"{joints[3]:F3}, {joints[4]:F3}, {joints[5]:F3}]";
     }
 }

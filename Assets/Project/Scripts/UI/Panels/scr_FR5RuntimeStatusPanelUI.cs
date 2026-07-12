@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -160,9 +160,39 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
     [Header("자동 갱신 옵션")]
     [SerializeField] private bool autoRefreshInUpdate = true;
-    [SerializeField] private float refreshIntervalSeconds = 0.1f;
+    [SerializeField] private float refreshIntervalSeconds = 0.2f;
+    [SerializeField] private float uiRefreshInterval = 0.2f;
+    [SerializeField] private float runtimeStatusRefreshInterval = 0.2f;
+    [SerializeField] private float numericRefreshInterval = 0.2f;
+    [SerializeField] private float messageRefreshInterval = 0.4f;
+    [SerializeField] private float staleTimeoutSeconds = 0.8f;
+    [SerializeField] private float disconnectTimeoutSeconds = 2.0f;
+    [SerializeField] private bool suppressUnchangedText = true;
+    [SerializeField] private bool keepLastValidValues = true;
+    [SerializeField] private float tcpPositionDisplayDeadbandMeters = 0.0005f;
+    [SerializeField] private float tcpRotationDisplayDeadbandDegrees = 0.05f;
+    [SerializeField] private float deltaDisplayDeadbandMeters = 0.0005f;
 
     private float nextRefreshTime = 0f;
+    private float nextMessageRefreshTime = 0f;
+    private bool allowMessageRefreshThisPass = true;
+    private float lastRos2ValidSampleTime = -1f;
+    private string lastRos2StableStateLabel = "DISCONNECTED";
+    private string lastRos2StableValidLabel = "DISCONNECTED";
+    private bool hasDisplayedTcpPos = false;
+    private bool hasDisplayedTcpRot = false;
+    private bool hasDisplayedDelta = false;
+    private bool hasDisplayedFkPos = false;
+    private bool hasDisplayedErrorFk = false;
+    private bool hasDisplayedPythonPos = false;
+    private bool hasDisplayedErrorPython = false;
+    private Vector3 displayedTcpPos = Vector3.zero;
+    private Vector3 displayedTcpRot = Vector3.zero;
+    private Vector3 displayedDelta = Vector3.zero;
+    private Vector3 displayedFkPos = Vector3.zero;
+    private Vector3 displayedErrorFk = Vector3.zero;
+    private Vector3 displayedPythonPos = Vector3.zero;
+    private Vector3 displayedErrorPython = Vector3.zero;
 
     private void Start()
     {
@@ -183,7 +213,8 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             return;
         }
 
-        nextRefreshTime = Time.time + refreshIntervalSeconds;
+        float interval = Mathf.Max(0.05f, Mathf.Max(uiRefreshInterval > 0f ? uiRefreshInterval : refreshIntervalSeconds, Mathf.Min(Mathf.Max(0.05f, runtimeStatusRefreshInterval), Mathf.Max(0.05f, numericRefreshInterval))));
+        nextRefreshTime = Time.time + interval;
         RefreshUI();
     }
 
@@ -263,6 +294,12 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     {
         ApplyStaticLabels();
 
+        allowMessageRefreshThisPass = Time.time >= nextMessageRefreshTime;
+        if (allowMessageRefreshThisPass)
+        {
+            nextMessageRefreshTime = Time.time + Mathf.Clamp(messageRefreshInterval, 0.3f, 0.5f);
+        }
+
         SetValue(titleText, panelTitle);
 
         if (runtimeSyncManager == null)
@@ -295,9 +332,10 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
             if (ros2Client != null)
             {
-                connected = ros2Client.IsConnected;
-                sampleValid = ros2Client.LastSampleValid;
-                formattedRobotState = GetRos2RuntimeStateLabel(ros2Client);
+                UpdateRos2StableUiState(ros2Client);
+                connected = !string.Equals(lastRos2StableValidLabel, "DISCONNECTED", System.StringComparison.OrdinalIgnoreCase);
+                sampleValid = string.Equals(lastRos2StableValidLabel, "VALID", System.StringComparison.OrdinalIgnoreCase);
+                formattedRobotState = lastRos2StableStateLabel;
                 formattedLastPoll = GetRos2LastPollLabel(ros2Client, formattedLastPoll);
                 formattedMessage = GetRos2MessageLabel(ros2Client, formattedMessage);
             }
@@ -305,8 +343,10 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             {
                 connected = false;
                 sampleValid = false;
-                formattedRobotState = "ROS2 SOURCE MISSING";
-                formattedMessage = "ROS2 JointState client is not assigned.";
+                lastRos2StableStateLabel = "ROS2 WAITING";
+                lastRos2StableValidLabel = "DISCONNECTED";
+                formattedRobotState = lastRos2StableStateLabel;
+                formattedMessage = "Waiting for ros_tcp_endpoint and /fr5/joint_states.";
             }
         }
 
@@ -322,7 +362,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             formattedMode,
             formattedSource,
             formattedRobotState,
-            sampleValid
+            GetStableValidLabel(sampleValid)
         );
 
         ApplyTcpAndCompareValues();
@@ -348,19 +388,22 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         SetValue(sourceText, formattedSource);
         SetValue(robotStateText, formattedRobotState);
         SetValue(lastPollText, formattedLastPoll);
-        SetValue(lastMessageText, formattedMessage);
+        if (allowMessageRefreshThisPass)
+        {
+            SetValue(lastMessageText, formattedMessage);
+        }
     }
 
     private void ApplyRightSummaryValues(
         string formattedMode,
         string formattedSource,
         string formattedRobotState,
-        bool sampleValid)
+        string validLabel)
     {
-        SetValue(rightModeSummaryText, $"MODE : {formattedMode}");
-        SetValue(rightSourceSummaryText, $"SOURCE : {formattedSource}");
-        SetValue(rightRobotStateSummaryText, $"ROBOT : {formattedRobotState}");
-        SetValue(rightValidSummaryText, $"VALID : {sampleValid.ToString().ToUpperInvariant()}");
+        SetValue(rightModeSummaryText, $"MODE : {SafeField(formattedMode)}");
+        SetValue(rightSourceSummaryText, $"SOURCE : {SafeField(formattedSource)}");
+        SetValue(rightRobotStateSummaryText, $"ROBOT : {SafeField(formattedRobotState)}");
+        SetValue(rightValidSummaryText, $"VALID : {SafeField(validLabel)}");
     }
 
     private void ApplyTcpAndCompareValues()
@@ -373,43 +416,43 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
         robotController.ForceRefreshStatus();
 
-        Vector3 tcpPos = robotController.GetCurrentUnityTCPLocalPosition();
-        Vector3 tcpRot = robotController.GetCurrentUnityTCPLocalRotation();
-        Vector3 delta = robotController.GetCurrentRelativeDeltaLocal();
+        Vector3 tcpPos = StabilizeDisplayedVector(robotController.GetCurrentUnityTCPLocalPosition(), ref displayedTcpPos, ref hasDisplayedTcpPos, tcpPositionDisplayDeadbandMeters);
+        Vector3 tcpRot = StabilizeDisplayedVector(robotController.GetCurrentUnityTCPLocalRotation(), ref displayedTcpRot, ref hasDisplayedTcpRot, tcpRotationDisplayDeadbandDegrees);
+        Vector3 delta = StabilizeDisplayedVector(robotController.GetCurrentRelativeDeltaLocal(), ref displayedDelta, ref hasDisplayedDelta, deltaDisplayDeadbandMeters);
 
-        Vector3 fkPos = robotController.GetCurrentFKTCPLocalPosition();
-        Vector3 pyPos = robotController.GetCurrentPythonTCPLocalPosition();
+        Vector3 fkPos = StabilizeDisplayedVector(robotController.GetCurrentFKTCPLocalPosition(), ref displayedFkPos, ref hasDisplayedFkPos, tcpPositionDisplayDeadbandMeters);
+        Vector3 pyPos = StabilizeDisplayedVector(robotController.GetCurrentPythonTCPLocalPosition(), ref displayedPythonPos, ref hasDisplayedPythonPos, tcpPositionDisplayDeadbandMeters);
 
-        Vector3 errorFk = robotController.GetCurrentTCPErrorUnityVsFKLocal();
-        Vector3 errorPy = robotController.GetCurrentTCPErrorUnityVsPythonLocal();
+        Vector3 errorFk = StabilizeDisplayedVector(robotController.GetCurrentTCPErrorUnityVsFKLocal(), ref displayedErrorFk, ref hasDisplayedErrorFk, deltaDisplayDeadbandMeters);
+        Vector3 errorPy = StabilizeDisplayedVector(robotController.GetCurrentTCPErrorUnityVsPythonLocal(), ref displayedErrorPython, ref hasDisplayedErrorPython, deltaDisplayDeadbandMeters);
 
         bool pythonLoaded = robotController.IsPythonTCPLoaded();
 
-        SetValue(rightTcpPosXText, $"X : {FormatSigned3(tcpPos.x)}");
-        SetValue(rightTcpPosYText, $"Y : {FormatSigned3(tcpPos.y)}");
-        SetValue(rightTcpPosZText, $"Z : {FormatSigned3(tcpPos.z)}");
+        SetValue(rightTcpPosXText, $"X : {FormatPosition(tcpPos.x)}");
+        SetValue(rightTcpPosYText, $"Y : {FormatPosition(tcpPos.y)}");
+        SetValue(rightTcpPosZText, $"Z : {FormatPosition(tcpPos.z)}");
 
-        SetValue(rightTcpRotXText, $"RX : {FormatSigned1(tcpRot.x)}");
-        SetValue(rightTcpRotYText, $"RY : {FormatSigned1(tcpRot.y)}");
-        SetValue(rightTcpRotZText, $"RZ : {FormatSigned1(tcpRot.z)}");
+        SetValue(rightTcpRotXText, $"RX : {FormatRotation(tcpRot.x)}");
+        SetValue(rightTcpRotYText, $"RY : {FormatRotation(tcpRot.y)}");
+        SetValue(rightTcpRotZText, $"RZ : {FormatRotation(tcpRot.z)}");
 
-        SetValue(rightRelativeXText, $"DX : {FormatSigned3(delta.x)}");
-        SetValue(rightRelativeYText, $"DY : {FormatSigned3(delta.y)}");
-        SetValue(rightRelativeZText, $"DZ : {FormatSigned3(delta.z)}");
+        SetValue(rightRelativeXText, $"DX : {FormatDelta(delta.x)}");
+        SetValue(rightRelativeYText, $"DY : {FormatDelta(delta.y)}");
+        SetValue(rightRelativeZText, $"DZ : {FormatDelta(delta.z)}");
 
-        SetValue(rightFkXText, $"FK X : {FormatSigned3(fkPos.x)}");
-        SetValue(rightFkYText, $"FK Y : {FormatSigned3(fkPos.y)}");
-        SetValue(rightFkZText, $"FK Z : {FormatSigned3(fkPos.z)}");
+        SetValue(rightFkXText, $"FK X : {FormatPosition(fkPos.x)}");
+        SetValue(rightFkYText, $"FK Y : {FormatPosition(fkPos.y)}");
+        SetValue(rightFkZText, $"FK Z : {FormatPosition(fkPos.z)}");
 
         if (pythonLoaded)
         {
-            SetValue(rightPythonXText, $"PY X : {FormatSigned3(pyPos.x)}");
-            SetValue(rightPythonYText, $"PY Y : {FormatSigned3(pyPos.y)}");
-            SetValue(rightPythonZText, $"PY Z : {FormatSigned3(pyPos.z)}");
+            SetValue(rightPythonXText, $"PY X : {FormatPosition(pyPos.x)}");
+            SetValue(rightPythonYText, $"PY Y : {FormatPosition(pyPos.y)}");
+            SetValue(rightPythonZText, $"PY Z : {FormatPosition(pyPos.z)}");
 
-            SetValue(rightErrorPythonXText, $"EPX : {FormatSigned4(errorPy.x)}");
-            SetValue(rightErrorPythonYText, $"EPY : {FormatSigned4(errorPy.y)}");
-            SetValue(rightErrorPythonZText, $"EPZ : {FormatSigned4(errorPy.z)}");
+            SetValue(rightErrorPythonXText, $"EPX : {FormatDelta(errorPy.x)}");
+            SetValue(rightErrorPythonYText, $"EPY : {FormatDelta(errorPy.y)}");
+            SetValue(rightErrorPythonZText, $"EPZ : {FormatDelta(errorPy.z)}");
         }
         else
         {
@@ -424,9 +467,9 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             SetValue(rightErrorPythonZText, $"EPZ : {emptyValueLabel}");
         }
 
-        SetValue(rightErrorFkXText, $"EFX : {FormatSigned4(errorFk.x)}");
-        SetValue(rightErrorFkYText, $"EFY : {FormatSigned4(errorFk.y)}");
-        SetValue(rightErrorFkZText, $"EFZ : {FormatSigned4(errorFk.z)}");
+        SetValue(rightErrorFkXText, $"EFX : {FormatDelta(errorFk.x)}");
+        SetValue(rightErrorFkYText, $"EFY : {FormatDelta(errorFk.y)}");
+        SetValue(rightErrorFkZText, $"EFZ : {FormatDelta(errorFk.z)}");
     }
 
     private void ApplyRightRuntimeValues(string formattedLastPoll, bool sampleValid)
@@ -481,7 +524,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         if (unityReplaySource == null)
         {
             SetValue(rightLastPollText, "REPLAY : SOURCE MISSING");
-            SetValue(rightRuntimeSpeedText, "SPEED : -");
+            SetValue(rightRuntimeSpeedText, $"SPEED : {defaultSpeedLabel}");
             SetValue(rightRuntimeStateText, "STATE : SOURCE MISSING");
             return true;
         }
@@ -510,7 +553,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
         if (ros2Client == null)
         {
-            SetValue(rightLastPollText, "LAST : -");
+            SetValue(rightLastPollText, "LAST : WAITING");
             SetValue(rightRuntimeSpeedText, "TOPIC : SOURCE MISSING");
             SetValue(rightRuntimeStateText, "STATE : ROS2 WAITING");
             return true;
@@ -542,7 +585,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
     private void ApplyRightAlarmValues(string formattedMessage)
     {
-        if (rightAlarmText == null)
+        if (rightAlarmText == null || !allowMessageRefreshThisPass)
         {
             return;
         }
@@ -588,8 +631,17 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             return ros2JointStateClient;
         }
 
-        ros2JointStateClient = FindObjectOfType<scr_FR5Ros2JointStateClient>();
+        ros2JointStateClient = FindSceneObject<scr_FR5Ros2JointStateClient>();
         return ros2JointStateClient;
+    }
+
+    private T FindSceneObject<T>() where T : UnityEngine.Object
+    {
+#if UNITY_2023_1_OR_NEWER
+        return FindFirstObjectByType<T>();
+#else
+        return FindObjectOfType<T>();
+#endif
     }
 
     private string GetRos2RuntimeStateLabel(scr_FR5Ros2JointStateClient ros2Client)
@@ -629,7 +681,7 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
     {
         if (ros2Client == null)
         {
-            return string.IsNullOrWhiteSpace(fallbackLabel) ? "-" : fallbackLabel;
+            return string.IsNullOrWhiteSpace(fallbackLabel) ? "WAITING" : fallbackLabel;
         }
 
         if (!string.IsNullOrWhiteSpace(ros2Client.LastPollTime) && ros2Client.LastPollTime != "-")
@@ -637,14 +689,14 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             return ros2Client.LastPollTime;
         }
 
-        return string.IsNullOrWhiteSpace(fallbackLabel) ? "-" : fallbackLabel;
+        return string.IsNullOrWhiteSpace(fallbackLabel) ? "WAITING" : fallbackLabel;
     }
 
     private string GetRos2MessageLabel(scr_FR5Ros2JointStateClient ros2Client, string fallbackMessage)
     {
-        if (ros2Client == null)
+        if (ros2Client == null || !ros2Client.IsConnected || !ros2Client.LatestMessageReceived)
         {
-            return "ROS2 JointState client is not assigned.";
+            return "Waiting for ros_tcp_endpoint and /fr5/joint_states.";
         }
 
         string message = ros2Client.GetDisplayMessageLabel(fallbackMessage);
@@ -680,6 +732,64 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         return string.Empty;
     }
 
+    private void UpdateRos2StableUiState(scr_FR5Ros2JointStateClient ros2Client)
+    {
+        if (ros2Client == null)
+        {
+            lastRos2StableStateLabel = "ROS2 WAITING";
+            lastRos2StableValidLabel = "DISCONNECTED";
+            return;
+        }
+
+        if (ros2Client.LastPollSucceeded && ros2Client.LastSampleValid && ros2Client.LatestMessageReceived)
+        {
+            lastRos2ValidSampleTime = Time.time;
+        }
+
+        if (lastRos2ValidSampleTime < 0f)
+        {
+            lastRos2StableStateLabel = "ROS2 WAITING";
+            lastRos2StableValidLabel = "DISCONNECTED";
+            return;
+        }
+
+        float age = Time.time - lastRos2ValidSampleTime;
+
+        if (age < Mathf.Max(0.1f, staleTimeoutSeconds))
+        {
+            lastRos2StableStateLabel = "ROS2 LIVE";
+            lastRos2StableValidLabel = "VALID";
+            return;
+        }
+
+        if (age < Mathf.Max(staleTimeoutSeconds + 0.1f, disconnectTimeoutSeconds))
+        {
+            lastRos2StableStateLabel = "ROS2 STALE";
+            lastRos2StableValidLabel = "STALE";
+            return;
+        }
+
+        lastRos2StableStateLabel = "ROS2 WAITING";
+        lastRos2StableValidLabel = "DISCONNECTED";
+    }
+
+    private string GetStableValidLabel(bool sampleValid)
+    {
+        if (runtimeSyncManager != null &&
+            runtimeSyncManager.SelectedRuntimeSource == scr_FR5RuntimeSyncManager.RuntimeSourceType.Ros2JointState)
+        {
+            return string.IsNullOrWhiteSpace(lastRos2StableValidLabel)
+                ? "DISCONNECTED"
+                : lastRos2StableValidLabel;
+        }
+
+        return sampleValid ? "TRUE" : "FALSE";
+    }
+
+    private string SafeField(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? emptyValueLabel : value;
+    }
     private void ApplyStaticLabels()
     {
         SetLabel(modeLabelText, "MODE");
@@ -693,8 +803,9 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
     private void ApplyConnectionStatusLabels(bool connected, bool sampleValid)
     {
+        string validLabel = GetStableValidLabel(sampleValid);
         SetLabel(connectionLabelText, connected ? "LINK CONNECTED" : "LINK DISCONNECTED");
-        SetLabel(validLabelText, sampleValid ? "VALID TRUE" : "VALID FALSE");
+        SetLabel(validLabelText, $"VALID {validLabel}");
     }
 
     private void ApplyNoReferenceState()
@@ -730,29 +841,29 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
 
     private void ApplyNoRobotControllerTcpState()
     {
-        SetValue(rightTcpPosXText, "X : 0.000");
-        SetValue(rightTcpPosYText, "Y : 0.000");
-        SetValue(rightTcpPosZText, "Z : 0.000");
+        SetValue(rightTcpPosXText, "X : 0.000000");
+        SetValue(rightTcpPosYText, "Y : 0.000000");
+        SetValue(rightTcpPosZText, "Z : 0.000000");
 
-        SetValue(rightTcpRotXText, "RX : 0.0");
-        SetValue(rightTcpRotYText, "RY : 0.0");
-        SetValue(rightTcpRotZText, "RZ : 0.0");
+        SetValue(rightTcpRotXText, "RX : 0.000000");
+        SetValue(rightTcpRotYText, "RY : 0.000000");
+        SetValue(rightTcpRotZText, "RZ : 0.000000");
 
-        SetValue(rightRelativeXText, "DX : 0.000");
-        SetValue(rightRelativeYText, "DY : 0.000");
-        SetValue(rightRelativeZText, "DZ : 0.000");
+        SetValue(rightRelativeXText, "DX : 0.000000");
+        SetValue(rightRelativeYText, "DY : 0.000000");
+        SetValue(rightRelativeZText, "DZ : 0.000000");
 
-        SetValue(rightFkXText, "FK X : 0.000");
-        SetValue(rightFkYText, "FK Y : 0.000");
-        SetValue(rightFkZText, "FK Z : 0.000");
+        SetValue(rightFkXText, "FK X : 0.000000");
+        SetValue(rightFkYText, "FK Y : 0.000000");
+        SetValue(rightFkZText, "FK Z : 0.000000");
 
         SetValue(rightPythonXText, $"PY X : {pythonPausedLabel}");
         SetValue(rightPythonYText, $"PY Y : {pythonPausedLabel}");
         SetValue(rightPythonZText, $"PY Z : {pythonPausedLabel}");
 
-        SetValue(rightErrorFkXText, "EFX : 0.0000");
-        SetValue(rightErrorFkYText, "EFY : 0.0000");
-        SetValue(rightErrorFkZText, "EFZ : 0.0000");
+        SetValue(rightErrorFkXText, "EFX : 0.000000");
+        SetValue(rightErrorFkYText, "EFY : 0.000000");
+        SetValue(rightErrorFkZText, "EFZ : 0.000000");
 
         SetValue(rightErrorPythonXText, $"EPX : {emptyValueLabel}");
         SetValue(rightErrorPythonYText, $"EPY : {emptyValueLabel}");
@@ -796,19 +907,54 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
         return robotNeutralBlockColor;
     }
 
+    private Vector3 StabilizeDisplayedVector(Vector3 current, ref Vector3 displayed, ref bool hasDisplayed, float deadband)
+    {
+        if (!hasDisplayed)
+        {
+            displayed = current;
+            hasDisplayed = true;
+            return displayed;
+        }
+
+        float threshold = Mathf.Max(0f, deadband);
+        if (Mathf.Abs(current.x - displayed.x) >= threshold ||
+            Mathf.Abs(current.y - displayed.y) >= threshold ||
+            Mathf.Abs(current.z - displayed.z) >= threshold)
+        {
+            displayed = current;
+        }
+
+        return displayed;
+    }
+
+    private string FormatPosition(float value)
+    {
+        return value.ToString("+0.000;-0.000;0.000", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private string FormatRotation(float value)
+    {
+        return value.ToString("+0.00;-0.00;0.00", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private string FormatDelta(float value)
+    {
+        return value.ToString("+0.0000;-0.0000;0.0000", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     private string FormatSigned1(float value)
     {
-        return value.ToString("+0.0;-0.0;0.0");
+        return value.ToString("+0.000;-0.000;0.000", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private string FormatSigned3(float value)
     {
-        return value.ToString("+0.000;-0.000;0.000");
+        return value.ToString("+0.000;-0.000;0.000", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private string FormatSigned4(float value)
     {
-        return value.ToString("+0.0000;-0.0000;0.0000");
+        return value.ToString("+0.000;-0.000;0.000", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private void SetLamp(Image image, bool state, Color onColor, Color offColor)
@@ -818,12 +964,17 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             return;
         }
 
-        image.color = state ? onColor : offColor;
+        SetImageColor(image, state ? onColor : offColor);
     }
 
     private void SetImageColor(Image image, Color color)
     {
         if (image == null)
+        {
+            return;
+        }
+
+        if (image.color == color)
         {
             return;
         }
@@ -838,8 +989,24 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             return;
         }
 
-        labelText.text = content;
-        labelText.color = labelColor;
+        string safeContent = string.IsNullOrWhiteSpace(content) ? emptyValueLabel : content;
+
+        if (suppressUnchangedText && labelText.text == safeContent)
+        {
+            if (labelText.color != labelColor)
+            {
+                labelText.color = labelColor;
+            }
+
+            return;
+        }
+
+        labelText.text = safeContent;
+
+        if (labelText.color != labelColor)
+        {
+            labelText.color = labelColor;
+        }
     }
 
     private void SetValue(TMP_Text valueText, string content)
@@ -849,7 +1016,39 @@ public class scr_FR5RuntimeStatusPanelUI : MonoBehaviour
             return;
         }
 
-        valueText.text = content;
-        valueText.color = valueColor;
+        string safeContent = string.IsNullOrWhiteSpace(content) ? emptyValueLabel : content;
+
+        if (keepLastValidValues && IsEmptyRuntimeValue(safeContent) && !string.IsNullOrWhiteSpace(valueText.text))
+        {
+            return;
+        }
+
+        if (suppressUnchangedText && valueText.text == safeContent)
+        {
+            if (valueText.color != valueColor)
+            {
+                valueText.color = valueColor;
+            }
+
+            return;
+        }
+
+        valueText.text = safeContent;
+
+        if (valueText.color != valueColor)
+        {
+            valueText.color = valueColor;
+        }
+    }
+
+    private bool IsEmptyRuntimeValue(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return true;
+        }
+
+        string trimmed = value.Trim();
+        return trimmed == "-" || trimmed == "---" || trimmed.EndsWith(" : -") || trimmed.EndsWith(" : ---");
     }
 }

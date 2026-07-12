@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 
 /// <summary>
@@ -25,6 +25,7 @@ public class scr_FR5UICommandRouter : MonoBehaviour
     [SerializeField] private scr_FR5UILayoutModeController layoutModeController;
     [SerializeField] private scr_FR5UnityReplayJointStateSource unityReplaySource;
     [SerializeField] private scr_FR5Ros2CommandPublisher ros2CommandPublisher;
+    [SerializeField] private scr_PythonAutoRunner pythonAutoRunner;
 
     [Header("Speed UI")]
     [SerializeField] private TMP_Text commandSpeedText;
@@ -841,6 +842,136 @@ public class scr_FR5UICommandRouter : MonoBehaviour
     }
 
     // ------------------------------------------------------------
+    // Button wiring safe wrapper methods
+    // ------------------------------------------------------------
+
+    public void OnClickStop()
+    {
+        OnClickStopMotion();
+    }
+
+    public void OnClickGripperSmall()
+    {
+        OnClickGripperSmallClose();
+    }
+
+    public void OnClickGripperNormal()
+    {
+        OnClickGripperNormalClose();
+    }
+
+    public void OnClickGripperReturn()
+    {
+        OnClickGripperReturnOpen();
+    }
+
+    public void OnClickJogJ1Plus()
+    {
+        ApplyJogStepToJointInput(0, 10f);
+    }
+
+    public void OnClickJogJ1Minus()
+    {
+        ApplyJogStepToJointInput(0, -10f);
+    }
+
+    public void OnClickJogJ2Plus()
+    {
+        ApplyJogStepToJointInput(1, 10f);
+    }
+
+    public void OnClickJogJ2Minus()
+    {
+        ApplyJogStepToJointInput(1, -10f);
+    }
+
+    public void OnClickJogJ3Plus()
+    {
+        ApplyJogStepToJointInput(2, 10f);
+    }
+
+    public void OnClickJogJ3Minus()
+    {
+        ApplyJogStepToJointInput(2, -10f);
+    }
+
+    public void OnClickJogJ4Plus()
+    {
+        ApplyJogStepToJointInput(3, 10f);
+    }
+
+    public void OnClickJogJ4Minus()
+    {
+        ApplyJogStepToJointInput(3, -10f);
+    }
+
+    public void OnClickJogJ5Plus()
+    {
+        ApplyJogStepToJointInput(4, 10f);
+    }
+
+    public void OnClickJogJ5Minus()
+    {
+        ApplyJogStepToJointInput(4, -10f);
+    }
+
+    public void OnClickJogJ6Plus()
+    {
+        ApplyJogStepToJointInput(5, 10f);
+    }
+
+    public void OnClickJogJ6Minus()
+    {
+        ApplyJogStepToJointInput(5, -10f);
+    }
+    public void OnClickExportCurrentJointToPython()
+    {
+        if (pythonAutoRunner == null)
+        {
+            WriteLog("PythonAutoRunner is not assigned.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        bool exported = pythonAutoRunner.ExportCurrentJointToPythonInput();
+        WriteLog(exported ? "Current joint exported to Python input." : "Current joint export to Python input failed.");
+        RefreshLinkedUI();
+    }
+
+    public void OnClickRunPythonGroundTruth()
+    {
+        if (pythonAutoRunner == null)
+        {
+            WriteLog("PythonAutoRunner is not assigned.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        bool succeeded = pythonAutoRunner.RunLiveValidation();
+        WriteLog(succeeded ? "Python ground truth validation completed." : "Python ground truth validation failed.");
+        RefreshLinkedUI();
+    }
+
+    public void OnClickResetOffset()
+    {
+        OnClickResetToolOffset();
+    }
+
+    public void OnClickPoseReset()
+    {
+        ApplyPosePresetToJointInput("Pose RESET", new float[] { 0f, 0f, 0f, 0f, 0f, 0f });
+    }
+
+    public void OnClickPoseRos2Demo()
+    {
+        ApplyPosePresetToJointInput("Pose ROS2 DEMO", new float[] { 0f, -60f, 90f, -90f, -90f, 0f });
+    }
+
+    public void OnClickPoseSmallSafe()
+    {
+        ApplyPosePresetToJointInput("Pose SMALL SAFE", new float[] { 10f, -45f, 75f, -30f, -60f, 15f });
+    }
+    // ------------------------------------------------------------
     // UI 갱신
     // ------------------------------------------------------------
 
@@ -898,6 +1029,32 @@ public class scr_FR5UICommandRouter : MonoBehaviour
     // 내부 처리
     // ------------------------------------------------------------
 
+    private void ApplyJogStepToJointInput(int jointIndex, float deltaDegrees)
+    {
+        if (jointPanelUI == null)
+        {
+            WriteLog($"J{jointIndex + 1} input step failed. JointPanelUI is not assigned.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        jointPanelUI.StepJointInputForCommand(jointIndex, deltaDegrees);
+        WriteLog($"J{jointIndex + 1} input {(deltaDegrees >= 0f ? "+" : "")}{deltaDegrees:0} deg loaded. Press MOVE J to execute.");
+        RefreshLinkedUI();
+    }
+    private void ApplyPosePresetToJointInput(string label, float[] preset)
+    {
+        if (jointPanelUI == null)
+        {
+            WriteLog($"{label} failed. JointPanelUI is not assigned.");
+            RefreshLinkedUI();
+            return;
+        }
+
+        jointPanelUI.ApplyPosePresetForCommand(preset);
+        WriteLog($"{label} loaded to joint input. Press MOVE J to execute.");
+        RefreshLinkedUI();
+    }
     private bool IsUnityReplaySourceActive()
     {
         return runtimeSyncManager != null &&
