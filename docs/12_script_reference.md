@@ -15,10 +15,12 @@ src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
 | 항목 | 내용 |
 |:---|:---|
 | 역할 | Magazine Slot01~07 최종 Pick & Place Motion Master |
-| 입력 | `FR5_TAKE`, 현재 Joint State, Slot/Jig 설정, Planning Scene |
+| 입력 | `FR5_TAKE` 1~7 / ALL, 현재 Joint State, Slot/Jig 설정, Planning Scene |
 | 출력 | MoveIt Trajectory, Gripper/Jig/Conveyor 동작 |
 | 연결 | MoveIt2, Gazebo, TF, Joint State |
 | 검증 | TAKE1~07 최종 PASS, Negative J6 Guard |
+
+`ALL`은 TAKE1→TAKE7 순차 실행이며 TAKE8은 제외합니다. `--execute`는 Simulation 실행 구분입니다. Master selector는 확인됐지만 Unity 요청을 받는 `RUN_TAKE` dispatch는 아직 없습니다.
 
 주요 내부 책임:
 
@@ -66,6 +68,38 @@ src/fr5_gazebo/worlds/fr5_workcell.sdf
 
 Robot Table, Magazine, Conveyor, Jig Inventory 등 Workcell Simulation 배치를 정의합니다.
 
+## ROS2 Command Backend
+
+### `fr5_unity_command_listener.py`
+
+```text
+src/fr5_ros2_bridge/fr5_ros2_bridge/fr5_unity_command_listener.py
+```
+
+- `/fr5/unity_command`의 `std_msgs/msg/String` JSON subscriber
+- 기존 MOVE_J / HOME / RESET / STOP / Gripper command dispatch
+- `/fr5/command_status`의 `std_msgs/msg/String` JSON Status Publisher
+- 기존 STOP의 hold trajectory 처리
+- `RUN_TAKE`, TAKE 전용 `request_id` / `fr5_take`, active Master STOP은 아직 구현되지 않은 통합 범위
+
+### `fr5_gazebo_control.launch.py`
+
+```text
+src/fr5_gazebo/launch/fr5_gazebo_control.launch.py
+```
+
+Gazebo control 실행 구성에 Listener를 포함합니다. `command_topic=/fr5/unity_command`, `command_status_topic=/fr5/command_status` parameter를 사용합니다. 최종 Workcell 기준인 `fr5_workcell.launch.py`와 역할을 구분합니다.
+
+### `run_fr5_gazebo_command_bridge.sh`
+
+```text
+scripts/run_fr5_gazebo_command_bridge.sh
+```
+
+`${HOME}/fr5_ros2_ws`를 기준으로 환경을 source하고 bridge launch를 실행합니다. 특정 username을 하드코딩하지 않으며 `EXECUTE_UNITY_TRAJECTORY` 환경변수를 지원합니다. fresh clone을 별도 경로에 만들었다면 실제 source 대상 Workspace가 맞는지 확인해야 합니다.
+
+Listener의 fingerprint, Status schema와 이관 정책은 [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md)를 참고합니다.
+
 ## Unity Runtime Sync / ROS2
 
 ### `scr_FR5Ros2JointStateClient.cs`
@@ -89,11 +123,13 @@ Manual/Test와 External Feedback 중 현재 Joint Pose 소유자를 관리합니
 
 ### `scr_FR5Ros2CommandPublisher.cs`
 
-Unity에서 생성된 Robot Command를 ROS2 Command Topic으로 Publish합니다. 실제 SDK 실행은 Ubuntu Listener/Robot Interface 계층과 분리합니다.
+기존 Command를 `/fr5/unity_command`에 JSON으로 Publish합니다. TAKE 요청 API와 Unity Status Subscriber는 현재 완료된 기능에 포함하지 않습니다. 확인된 Backend 경로는 Gazebo/controller이며 실제 SDK 실행 검증은 별도입니다.
 
 ### `scr_FR5UICommandRouter.cs`
 
 UI Button 입력을 직접 Robot API로 보내지 않고 Command 구조로 변환해 Publisher에 전달합니다.
+
+Slot01~07은 TAKE Mapping/선택 UI까지만 연결되어 NOT SENT 상태를 유지합니다. Slot08은 EMPTY / Reject이며, OneTakeAll은 Backend 연결 전 비활성입니다.
 
 ### `scr_FR5RobotManualController.cs`
 
@@ -186,10 +222,12 @@ scr_FR5UICommandRouter
   ↓
 scr_FR5Ros2CommandPublisher
   ↓
-Ubuntu ROS2 Listener
+fr5_unity_command_listener [기존 명령]
   ↓
-FR5 SDK
+Gazebo / controller
 ```
+
+Backend `/fr5/command_status` Publisher는 구현되어 있으며, Unity 수신·TAKE correlation 및 실제 Hardware command 검증은 Pending입니다.
 
 ```text
 PICK_DONE / PLACE_DONE

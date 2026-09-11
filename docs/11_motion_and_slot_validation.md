@@ -15,7 +15,7 @@ Magazine Motion은 TAKE 단위로 검증했습니다. 최종 운영 범위는 TA
 | TAKE7 | Slot07 | PASS |
 | TAKE8 | Slot08 | 운영 제외 |
 
-TAKE1~TAKE7은 한 번씩 부분 동작만 확인한 것이 아니라 최종 Master 기준으로 재실행 후 Visual PASS까지 확인한 상태입니다.
+TAKE1~TAKE7은 최종 Simulation Master 기준으로 재실행 후 Gazebo Visual PASS까지 확인한 상태입니다. 실제 FR5 Hardware 실행 결과와는 구분합니다.
 
 ## Master Motion 기준
 
@@ -30,6 +30,27 @@ src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
 ```
 
 새 Take를 만들 때 별도 Runner를 추가하지 않고 같은 Master 파일 안에서 누적 수정했습니다. 이미 PASS한 Take의 Pick/IK/Action/Approval/Corridor는 이후 Take 작업에서 다시 바꾸지 않는 방식으로 기준을 잠갔습니다.
+
+## Master TAKE Selector
+
+Master 코드에서 확인된 입력은 환경변수 `FR5_TAKE`입니다.
+
+| 값 | Simulation 실행 범위 |
+|:---|:---|
+| `1`, `2`, `3`, `4`, `5`, `6`, `7` | 해당 TAKE 단독 선택 |
+| `ALL` | TAKE1 → TAKE7 순차 실행 |
+
+TAKE8은 운영 범위에서 사용하지 않습니다. 아래는 Simulation Master 실행 예이며 Hardware 실행 명령이나 배포 시 자동 실행 절차가 아닙니다.
+
+```bash
+FR5_TAKE=1 python3 -u \
+  src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py \
+  --execute
+```
+
+`--execute`는 Simulation 실행 구분입니다. Master의 selector 및 `ALL` 지원은 확인됐지만, 현재 Listener에는 `RUN_TAKE`가 없으므로 Unity Slot/OneTakeAll 요청과 Master 실행은 아직 연결되지 않았습니다. Unity-to-TAKE dispatch와 완료 상태 처리는 별도 통합 항목으로 남깁니다.
+
+Slot YAML / World / Launch의 보호 SHA와 노트북 인계 기준은 [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md)에 모았습니다.
 
 ## Slot01
 

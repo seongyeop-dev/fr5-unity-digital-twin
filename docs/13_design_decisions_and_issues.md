@@ -178,6 +178,24 @@ Simulation
 
 문서와 구현 모두에서 Simulation/Bridge 검증과 실제 Hardware 검증을 별도 상태로 관리합니다.
 
+## 11. 개발 PC와 실제 FR5 노트북 환경 분리
+
+### 문제
+
+개발 PC Ubuntu는 최종 Simulation/Development 기준본을 생성했지만, 노트북의 기존 Workspace는 최종 Slot / Conveyor 배치 이전 상태입니다. 폴더 수동 복사나 오래된 Workspace 재사용만으로는 동일한 Motion과 실행 환경을 보장할 수 없습니다.
+
+### 적용 기준
+
+- 개발 PC 역할을 종료하고 GitHub의 고정 `46cf3ace69154e8befb2fb3a78686cd931c3428a`를 인계 기준으로 사용
+- 같은 Git lineage와 보호 파일 SHA256을 함께 확인
+- 노트북 로컬 작업을 보존하고, 안전한 fast-forward가 불가능하면 별도 fresh clone 사용
+- 개발 PC의 `build/`, `install/`, `log/`를 복사하지 않고 ROS2 Jazzy에서 새로 build
+- read-only preflight / 실제 FR5 feedback / STOP path 확인 후 command enable
+
+### 결과
+
+개발 PC Local / GitHub origin의 parity `0 / 0`과 보호 기준을 확보했습니다. 노트북 복원 및 실제 FR5 검증은 Pending으로 남기며, Simulation 기준본의 재현성과 Hardware 검증을 분리합니다. 구체적인 branch, SHA와 단계별 인계 절차는 [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md)를 기준으로 합니다.
+
 ## 최종 설계 원칙
 
 이 프로젝트에서 반복적으로 사용한 기준은 다음과 같습니다.

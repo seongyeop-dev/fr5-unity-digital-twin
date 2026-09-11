@@ -18,7 +18,7 @@ ROS2 Topics / Status
 Unity
 ```
 
-Unity는 SDK 함수 자체를 직접 소유하기보다 ROS2 Interface를 통해 상태와 명령을 교환하는 구조를 사용합니다.
+위 그림은 실제 장비 연동의 계층 구조입니다. 현재 확인된 Gazebo Command Backend와 실제 FR5 SDK 실행 검증을 구분하며, 노트북 Hardware 종단 검증은 Pending입니다.
 
 ## Read-only Feedback 우선
 
@@ -36,7 +36,7 @@ Read-only 경로가 확인되기 전에는 Unity 테스트 버튼이나 Simulati
 
 ## Command Path
 
-Unity Command 흐름은 다음과 같이 분리했습니다.
+구현이 확인된 기존 명령의 Simulation 경로는 다음과 같습니다.
 
 ```text
 Unity UI
@@ -45,16 +45,26 @@ scr_FR5UICommandRouter
   ↓
 scr_FR5Ros2CommandPublisher
   ↓
-ROS2 Command Topic
+/fr5/unity_command [std_msgs/msg/String, JSON]
   ↓
-Ubuntu Listener / Robot Interface
+fr5_unity_command_listener
   ↓
-FR5 SDK
+Gazebo / controller
 ```
 
-Command Status는 반대 방향으로 반환해 UI에서 요청 전송과 실제 처리 상태를 구분할 수 있도록 구성합니다.
+실제 Listener는 `src/fr5_ros2_bridge/fr5_ros2_bridge/fr5_unity_command_listener.py`입니다. 기존 MOVE_J / HOME / RESET / STOP 및 Gripper 명령을 dispatch하고, `/fr5/command_status`에 `std_msgs/msg/String` JSON을 publish합니다. Status Publisher는 미래 기능이 아니라 현재 Backend에 존재합니다.
 
-프로젝트에서 사용한 Command/Status 계층에는 `/fr5/unity_command`, `/fr5/command_status`와 같은 ROS2 인터페이스가 포함됩니다.
+반면 Unity Status Subscriber와 TAKE completion correlation은 아직 완료되지 않았습니다. 기존 schema는 `source`, `robot`, `command`, `accepted`, `executed`, `state`, `message`, `timestamp_unix_ms`를 사용하며 TAKE 전용 `request_id` / `fr5_take`는 없습니다. 전체 JSON과 Listener SHA는 [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md)에 정리했습니다.
+
+### TAKE와 STOP 경계
+
+- Simulation Master: `FR5_TAKE` 1~7 / ALL 및 `--execute` 지원 확인
+- Backend Listener: `RUN_TAKE` 미구현; Unity Slot → Master dispatch는 Pending
+- 기존 `STOP`: hold trajectory 처리
+- active Master STOP / TAKE BUSY / request-status correlation: 별도 구현·검증 필요
+- 실제 FR5 안전 중단 및 Hardware command enable: 노트북에서 별도 검증
+
+기존 STOP 처리를 Master 중단이나 Hardware Emergency Stop의 검증 완료로 해석하지 않습니다. Unity의 로컬 SENT/READY 표시도 Backend TAKE 완료 응답을 대신하지 않습니다.
 
 ## Simulation / Actual 분리
 
@@ -65,7 +75,7 @@ Command Status는 반대 방향으로 반환해 UI에서 요청 전송과 실제
 | Unity Manual/Test | Joint/UI 동작 확인 | 없음 |
 | Gazebo/MoveIt Execute | Simulation Motion 검증 | 없음 |
 | SDK Read-only | 실제 Robot State 확인 | 없음 |
-| Actual Command | 실제 FR5 제어 | 있음 |
+| Actual Command | 실제 FR5 제어 대상 경로 | Hardware 검증 Pending |
 
 따라서 `--execute`, Unity Play Mode, SDK 연결 성공은 서로 다른 검증 단계입니다.
 
@@ -95,6 +105,8 @@ External Feedback
 ## 최종 실제 장비 검증 항목
 
 아래 항목은 Simulation/Bridge 구현과 분리해 실제 장비에서 최종 확인해야 합니다.
+
+개발 PC Ubuntu의 역할은 종료하며, 노트북에서는 [고정 commit/SHA와 fresh build 기준](14_deployment_and_handoff.md)을 먼저 확인합니다. read-only FR5 feedback → Unity network → STOP path 검증을 거친 뒤에만 command를 enable합니다.
 
 - FR5 SDK Joint Feedback 지속 수신
 - ROS2 Joint State와 Actual Joint 일치

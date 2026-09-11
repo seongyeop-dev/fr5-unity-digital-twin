@@ -115,6 +115,11 @@ Source, Robot Tool, Conveyor, Finish Magazine에 동일 Jig가 동시에 보이�
 | Unity | Source Slot01~07 / Slot08 EMPTY | PASS |
 | Unity | SMT Process / External FR5 Input | 구현/검증 |
 | FR5 SDK | Read-only Feedback / Command Path 분리 | 구현 |
+| ROS2 Backend | 기존 명령 dispatch / Status Publisher | 구현 확인 |
+| Simulation Master | `FR5_TAKE` 1~7 / ALL selector | 확인 |
+| Unity → TAKE | `RUN_TAKE` dispatch / 완료 상태 연결 | Pending |
+| Deployment | 개발 PC / GitHub commit parity | 0 / 0 확인 |
+| Laptop | Source 복원 / Hardware 검증 | Pending |
 | Actual FR5 | 최종 End-to-End Motion / Feedback | 최종 검증 예정 |
 
 ROS2/Gazebo 최종 Motion Master SHA256:
@@ -122,6 +127,8 @@ ROS2/Gazebo 최종 Motion Master SHA256:
 ```text
 80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
 ```
+
+ROS2 인계 기준은 GitHub `feat/fr5-gazebo-jig-attach-detach`의 `46cf3ace69154e8befb2fb3a78686cd931c3428a`입니다. 개발 PC Ubuntu의 Local HEAD와 origin branch HEAD가 동일함을 확인했습니다. 개발 PC 역할은 종료하며, 노트북에서는 기존 작업을 보존하고 보호 SHA 확인 → fresh build → read-only preflight 순서로 복원합니다. 상세 기준은 [14. Deployment & Laptop Handoff](docs/14_deployment_and_handoff.md)에 정리했습니다.
 
 ## 기술 스택
 
@@ -156,10 +163,13 @@ ROS2/Gazebo 최종 Motion Master SHA256:
 | [11. Motion & Slot Validation](docs/11_motion_and_slot_validation.md) | TAKE1~07, Negative J6, ACTION05, Master Motion 검증 기준 |
 | [12. Script Reference](docs/12_script_reference.md) | Python, C#, Launch, YAML, World 주요 파일 역할과 연결 |
 | [13. Design Decisions & Issues](docs/13_design_decisions_and_issues.md) | 주요 문제, 원인, 설계 변경 기준과 선택 이유 |
+| [14. Deployment & Laptop Handoff](docs/14_deployment_and_handoff.md) | 고정 commit/SHA, 실제 Backend 계약, 노트북 이관 및 Hardware 검증 경계 |
 
 ## 현재 남은 작업
 
 - Unity SMT 공통 선속도 및 Finish Straight Insert의 최종 Play Mode 시각 검증
+- Unity Slot → `RUN_TAKE` → Master 연결, Unity Status Subscriber / TAKE correlation / BUSY / active Master STOP
+- 노트북 Source 복원, fresh build 및 read-only preflight 검증
 - Unity ↔ ROS2 ↔ 실제 FR5 End-to-End 연동 검증
 - 실제 FR5 Motion/Feedback 최종 검증
 - 대표 이미지와 검증 영상 추가

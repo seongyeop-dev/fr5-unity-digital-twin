@@ -53,6 +53,38 @@ SHA256:
 - Slot01~02 ACTION05 사용
 - TAKE1~07 최종 재실행 후 Visual PASS 확인
 
+## Source 재현성과 노트북 이관 기준
+
+아래는 개발 PC Ubuntu의 최종 확인 결과입니다. 노트북 restore나 실제 FR5 Hardware PASS를 뜻하지 않습니다.
+
+| 항목 | 확인 내용 | 결과 |
+|:---|:---|:---:|
+| Git parity | Local / origin의 `46cf3ace69154e8befb2fb3a78686cd931c3428a` 일치, Ahead / Behind `0 / 0` | PASS |
+| Motion Master | 최종 SHA256 일치 | PASS |
+| Slot YAML | 최종 SHA256 parity | PASS |
+| Workcell World | 최종 SHA256 parity | PASS |
+| Workcell Launch | 최종 SHA256 parity | PASS |
+| Listener Source | `fr5_unity_command_listener.py` tracked Source 확인 | PASS |
+| Runtime 경로 | 조사 범위에서 절대 user 경로 의존성 미발견 | 확인 |
+| Source 의존성 | 조사 범위에서 Source symlink 의존성 미발견 | 확인 |
+| 노트북 restore | Source 복원, 의존성, fresh build, read-only preflight | Pending |
+| Actual FR5 | Hardware feedback / command / 안전 중단 / 종단 검증 | Pending |
+
+고정 branch, 파일별 경로와 SHA256은 [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md)의 기준표를 사용합니다. 개발 PC의 `build/`, `install/`, `log/`는 노트북에 복사하지 않습니다.
+
+## Backend Command / TAKE 검증 경계
+
+| 항목 | 현재 확인 범위 | 상태 |
+|:---|:---|:---:|
+| 기존 Command Bridge | MOVE_J / HOME / RESET / STOP 및 Gripper 명령 처리 | 구현 확인 |
+| Backend Status | `/fr5/command_status`, `std_msgs/msg/String` JSON Publisher | 구현 확인 |
+| Master selector | `FR5_TAKE=1`~`7`, `ALL`은 TAKE1→TAKE7 순차 실행 | 코드 확인 |
+| Unity → TAKE | Listener의 `RUN_TAKE` 및 Unity 요청 연결 | 미구현 |
+| TAKE lifecycle | request/status correlation, BUSY, active Master STOP | Pending |
+| Unity Status 수신 | Status Subscriber와 TAKE 완료 반영 | Pending |
+
+Backend Status Publisher의 존재와 Unity의 상태 수신 완료는 별도로 판정합니다. Master selector 확인은 Simulation 기준이며 실제 FR5 실행 검증을 대신하지 않습니다.
+
 ## Unity 검증
 
 확인한 항목:

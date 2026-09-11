@@ -30,6 +30,14 @@ MoveIt2
 └─ moveit_rviz.launch.py
 ```
 
+## Unity Command Bridge와 Workcell Launch 구분
+
+`fr5_workcell.launch.py`는 최종 Workcell 실행 기준이며, `src/fr5_gazebo/launch/fr5_gazebo_control.launch.py`에는 기존 Unity Command Listener가 포함됩니다. Listener parameter는 `command_topic=/fr5/unity_command`, `command_status_topic=/fr5/command_status`입니다.
+
+`scripts/run_fr5_gazebo_command_bridge.sh`는 `${HOME}/fr5_ros2_ws` 환경을 source하고 bridge launch를 실행하며 `EXECUTE_UNITY_TRAJECTORY`를 지원합니다. 기존 명령의 Gazebo/controller 경로와 Simulation Master의 TAKE 실행은 별개입니다. 현재 Listener에는 `RUN_TAKE` dispatch가 없습니다.
+
+Source commit, 보호 SHA 및 실행 경계는 [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md)를 기준으로 합니다.
+
 ## Planning Scene
 
 최종 Motion Master는 실행 전 Planning Scene과 현재 Joint State를 확인합니다. 주요 Workcell Geometry가 MoveIt Collision Object에 반영되어 있는지 확인한 뒤 Motion을 계획합니다.

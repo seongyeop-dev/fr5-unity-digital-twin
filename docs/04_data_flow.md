@@ -39,18 +39,20 @@ scr_FR5UICommandRouter
    ↓
 scr_FR5Ros2CommandPublisher
    ↓
-ROS2 Command Topic
+/fr5/unity_command [std_msgs/msg/String, JSON]
    ↓
-Ubuntu Listener
+fr5_unity_command_listener
    ↓
-MoveIt / Robot Interface
-   ↓
-Command Status
-   ↓
-Unity
+Gazebo / controller [기존 명령]
+
+Backend Status Publisher [구현됨]
+   → /fr5/command_status [std_msgs/msg/String, JSON]
+   → Unity Status Subscriber / TAKE correlation [Pending]
 ```
 
 UI와 Robot 실행 로직을 직접 연결하지 않고 Command Router와 ROS2 Publisher를 사이에 두었습니다.
+
+현재 Listener는 기존 MOVE_J / HOME / RESET / STOP / Gripper 명령을 처리합니다. Master에는 `FR5_TAKE=1`~`7` / `ALL` selector가 있지만 `RUN_TAKE` dispatch는 미구현입니다. 따라서 Slot 선택을 실제 TAKE 전송·완료로 표시하지 않으며, 이 경로를 실제 FR5 Hardware 실행 완료로 해석하지 않습니다. [Backend 계약과 인계 기준](14_deployment_and_handoff.md)을 참고합니다.
 
 ## MoveIt / Gazebo Motion 흐름
 

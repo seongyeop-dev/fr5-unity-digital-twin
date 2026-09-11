@@ -24,6 +24,7 @@
 | [11. Motion & Slot Validation](11_motion_and_slot_validation.md) | TAKE1~07, Negative J6, ACTION05, Motion Master 검증 |
 | [12. Script Reference](12_script_reference.md) | Python/C#/Launch/YAML/World 주요 파일 역할과 연결 관계 |
 | [13. Design Decisions & Issues](13_design_decisions_and_issues.md) | 주요 문제, 원인, 설계 변경과 선택 기준 |
+| [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md) | Source of Truth, 보호 SHA, Backend 계약, 노트북 이관과 남은 Hardware 검증 |
 
 ## 미디어
 
