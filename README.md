@@ -138,6 +138,8 @@ ROS2/Gazebo 최종 Motion Master SHA256:
 
 ## 상세 문서
 
+공통 포트폴리오 문서와 FR5 프로젝트 전용 기술 문서를 함께 구성했습니다.
+
 | 문서 | 내용 |
 |:---|:---|
 | [문서 목차](docs/README.md) | 상세 문서 전체 목차 |
@@ -148,13 +150,18 @@ ROS2/Gazebo 최종 Motion Master SHA256:
 | [05. Validation](docs/05_validation.md) | Motion, Planning Scene, Unity, SDK 검증 기준과 결과 |
 | [06. Project Scope](docs/06_project_scope.md) | 문제 해결, 완료 범위, 제한과 남은 연동 |
 | [07. Project Structure](docs/07_project_structure.md) | Ubuntu Python/ROS2와 Unity C# 스크립트 구조 및 역할 |
+| [08. ROS2 / Gazebo / MoveIt2](docs/08_ros2_gazebo_moveit.md) | Workcell, Planning Scene, Slot Motion, Jig Follower 상세 |
+| [09. Unity Digital Twin](docs/09_unity_digital_twin.md) | Joint Sync, Workcell Process, Jig Ownership, Source/Finish 구조 |
+| [10. FR5 SDK Integration](docs/10_fr5_sdk_integration.md) | Read-only Feedback, Command Path, Simulation/Actual 경계 |
+| [11. Motion & Slot Validation](docs/11_motion_and_slot_validation.md) | TAKE1~07, Negative J6, ACTION05, Master Motion 검증 기준 |
+| [12. Script Reference](docs/12_script_reference.md) | Python, C#, Launch, YAML, World 주요 파일 역할과 연결 |
+| [13. Design Decisions & Issues](docs/13_design_decisions_and_issues.md) | 주요 문제, 원인, 설계 변경 기준과 선택 이유 |
 
 ## 현재 남은 작업
 
-- Unity SMT Jig Transfer Speed 최종 통일
-- Finish Magazine Straight Insert 최종 Play Mode 확인
+- Unity SMT 공통 선속도 및 Finish Straight Insert의 최종 Play Mode 시각 검증
 - Unity ↔ ROS2 ↔ 실제 FR5 End-to-End 연동 검증
 - 실제 FR5 Motion/Feedback 최종 검증
 - 대표 이미지와 검증 영상 추가
 
-대표 이미지와 검증 영상은 최종 연동 완료 후 추가할 예정입니다.
+Unity의 공통 0.15 m/s Jig Transfer와 Finish 무회전 삽입 로직은 정적 검증까지 완료했으며, 최종 상태 표기는 Play Mode 시각 검증 후 갱신합니다.

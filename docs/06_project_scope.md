@@ -65,13 +65,12 @@ Unity Play Mode나 Gazebo `--execute`가 실제 FR5 Motion 허용과 같은 의�
 
 ## 남은 연동
 
-- Unity SMT Transfer Speed 최종 보정
-- Finish Magazine Straight Insert 최종 확인
+- Unity SMT 공통 선속도 / Finish Straight Insert 최종 Play Mode 시각 검증
 - Unity ↔ ROS2 ↔ Actual FR5 End-to-End 검증
 - 실제 FR5 Motion/Feedback 최종 검증
 - 대표 이미지 / 검증 영상 추가
 
-큰 구조나 Motion Policy를 다시 설계하는 단계는 종료했고, 현재는 통합과 최종 검증 단계에 있습니다.
+Unity의 마지막 공정 보정은 코드와 정적 검증까지 완료했으며, 큰 구조나 Motion Policy를 다시 설계하는 단계는 종료했습니다. 현재는 시각 검증과 실제 장비 종단 연동을 마무리하는 단계입니다.
 
 ---
 

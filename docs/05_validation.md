@@ -86,14 +86,19 @@ SDK 구조와 Read-only Feedback/Command Path는 구성했지만, 실제 Robot M
 - Magazine Motion 실제 환경 Calibration
 - 실제 Robot Speed / Safety 확인
 
-## 현재 Unity 최종 보정
+## 현재 Unity 최종 검증
 
-현재 마지막 Unity 검증 항목은 다음 두 가지입니다.
+Unity 공정의 마지막 두 항목은 코드 수정과 정적 검증까지 완료했습니다.
 
-- SMT Jig Transfer 구간 World-space Speed 통일
-- Unloader → Finish Magazine Straight Insert 시 Rotation 유지
+- SMT Jig Transfer: 기존 Conveyor 기준 `0.15 m/s` 공통 World-space 선속도 적용
+- 이동 시간: `duration = world_distance / speed` 기준으로 계산
+- Finish Insert: Unloader 도착 시점의 Jig World Rotation 유지
+- Rotation 검증: 삽입 시작/완료 `Quaternion.Angle` 기준 drift `<= 0.01°`
+- Static C# Compile: `CSC_EXIT_CODE=0`
+- Offline Contract: 24,241 assertions PASS
+- Scene SHA256 전/후 동일: `E9D9C2F818BD7A8244AA80DC261BF659ACB507720DA9BAF272A54CBA03130ACE`
 
-이 항목은 최종 Play Mode 확인 후 문서 상태를 갱신할 예정입니다.
+Scene과 Play Mode는 자동으로 변경하지 않았으며, 최종 상태 표기는 사용자의 Unity Play Mode 시각 검증 후 확정합니다.
 
 ---
 

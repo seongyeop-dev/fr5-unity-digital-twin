@@ -181,6 +181,10 @@ Ubuntu ROS2 Listener
 - 실제 장비 내부 정보, 사설 IP, 계정/식별정보는 문서에 기록하지 않음
 - 대표 이미지와 Demo Video는 최종 연동 검증 후 추가 예정
 
+## 상세 파일 설명
+
+이 문서는 전체 저장소 구조를 요약합니다. 실제 Python/C#/Launch/YAML/World 파일의 역할과 연결 관계는 [12. Script Reference](12_script_reference.md)에 별도로 정리했습니다.
+
 ---
 
 [문서 목차](README.md) · [프로젝트 README](../README.md)
