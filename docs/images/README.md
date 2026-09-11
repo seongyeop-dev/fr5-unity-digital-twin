@@ -1,17 +1,19 @@
-# 이미지 폴더
+# 이미지 / 검증 영상 추가 계획
 
-GitHub 문서에 사용할 대표 이미지 전용 폴더입니다.
+현재 문서 본문을 먼저 확정하고 대표 이미지와 검증 영상은 최종 연동 완료 후 추가합니다.
 
-추천 구성:
+예정 자료:
 
-```text
-01_system_overview.png
-02_unity_workcell.png
-03_gazebo_fr5.png
-04_moveit_planning.png
-05_slot_one_take.png
-06_smt_process.png
-07_source_finish.png
-```
+- Unity 전체 Workcell
+- Gazebo FR5 Workcell
+- MoveIt / Planning Scene
+- Slot01~07 One-Take 대표 화면
+- Unity SMT Process
+- Source / Finish Magazine
+- Actual FR5 / Unity End-to-End 검증
 
-스크린샷을 추가할 때 개인 경로, IP, Token, 계정 정보가 보이지 않는지 확인합니다.
+공개 전 화면의 사설 IP, 계정명, 내부 식별정보, 불필요한 Console 정보는 확인 후 정리합니다.
+
+---
+
+[문서 목차](../README.md) · [프로젝트 README](../../README.md)

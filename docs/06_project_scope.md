@@ -1,75 +1,78 @@
 # 06. 프로젝트 범위
 
-## 완료·검증된 범위
+## 주요 문제 해결
 
-### ROS2 / Gazebo
+### 1. Slot 높이에 따른 Pick 간섭
 
-- JointState
-- Arm Controller
-- Gripper Command
-- Unity Command Listener
-- MoveIt2 Plan / Execute
-- Slot01~Slot07 One-Take
-- Negative J6 Trajectory 정책
+Slot01에서 안정적인 Direct Pick을 확보한 뒤 Slot이 높아질수록 Magazine Frame 간섭 위험이 증가했습니다. Slot02 이상에는 PREGRASP와 짧은 Cartesian Approach를 적용해 진입 경로를 분리했습니다.
 
-### Unity
+### 2. Wrist IK Branch 전환
 
-- FR5 Visual
-- ROS2 Joint Sync
-- Workcell 기본 구성
-- SMT 생산라인
-- Source Magazine Slot01~07
-- Slot08 EMPTY
-- External FR5 Jig 입력 준비
-- Finish Magazine Lift 구조
+높은 Slot에서 Wrist가 다른 Branch로 전환되는 현상을 확인해 Trajectory 전체 Point에서 Negative J6를 검사하는 조건을 추가했습니다.
 
-### Python
+### 3. Gazebo / MoveIt 좌표 정합
 
-- MDH FK
-- Ground Truth
-- Unity 비교 데이터
+Gazebo Workcell과 MoveIt Collision Object의 Z 기준 차이를 Planning Scene 변환에서 보정했습니다. Robot Base 자체를 이동해 문제를 맞추는 방식은 사용하지 않았습니다.
 
-### C# SDK Bridge
+### 4. Jig Transport 표현
 
-- Read-only Preflight
-- Mock Feedback
-- Unity Runtime Source 연동
+Jig를 최종 위치로 즉시 이동시키는 대신 Tool-to-Jig Relative Transform과 LIVE TF 기반 rigid follower를 사용해 Carry 구간을 표현했습니다.
 
-## 진행 중
+### 5. Unity Jig 중복 표시
 
-- SMT 공정 간 이동 속도 통일
-- Finish Magazine 직선 Insert
-- Finish Placeholder Orientation
-- Process Camera 실제 배치와 UI 연결
-- Slot Operation UI 기능 연결
-- OneTakeAll Unity UI 연결
+Jig를 Source, Carried, Runtime, Finish 상태로 구분하고 Workcell Event 기준으로 Ownership을 전환해 동일 Jig가 여러 위치에 동시에 보이는 문제를 해결했습니다.
 
-## 별도 실기 검증이 필요한 범위
+### 6. Simulation과 Actual Robot 경계
 
-다음 항목은 Gazebo 또는 Mock PASS만으로 실제 FR5 완료로 간주하지 않습니다.
+Unity Play Mode나 Gazebo `--execute`가 실제 FR5 Motion 허용과 같은 의미가 되지 않도록 Simulation, Read-only Feedback, Actual Command 경로를 분리했습니다.
 
-- 실제 FR5 전체 SMT End-to-End
-- 실제 SDK Motion Command
-- 실제 장비에서의 최종 안전 검증
-- 실제 Workcell 설치 공차
+## 최종 구현 범위
 
-## Unity 연출 범위
+### Robot / Motion
 
-다음은 실제 산업 장비의 내부 제어 로직을 그대로 재현한다는 의미가 아닙니다.
+- FR5 Gazebo Simulation
+- MoveIt Planning Scene
+- Joint/Cartesian Motion
+- Slot01~07 One-Take
+- Jig Follow / Release / Conveyor
+- Trajectory Branch Validation
 
-- Conveyor 시각 이동
-- Mounter 처리 연출
-- Inspection 처리 연출
-- Stack Light 상태
-- Finish Magazine 시각 Hand-off
+### Unity Digital Twin
 
-## 포트폴리오 표현 원칙
+- FR5 Joint Runtime Sync
+- Workcell Layout
+- Source / Finish Magazine
+- Magazine Conveyor
+- Jig Ownership
+- SMT Process
+- External FR5 Input
+- UI / Command Routing
 
-문서와 README에서는 다음을 구분해 표시합니다.
+### Robot Interface
 
-```text
-실제 제어
-시뮬레이션
-Unity 시각화
-미검증 / 진행 중
-```
+- FR5 SDK 연결 구조
+- Read-only Feedback
+- ROS2 Command Publisher / Listener
+- Command Status
+- Simulation / Actual Robot Mode Separation
+
+## 구현 범위에서 제외하거나 보수적으로 유지한 부분
+
+- Slot08은 최상단 간섭 위험으로 최종 운영 범위에서 제외
+- Unity는 Gazebo를 대체하는 Robot Physics Simulator로 사용하지 않음
+- Simulation PASS를 Actual FR5 Hardware PASS로 표현하지 않음
+- 실제 장비 Safety/Speed는 최종 Hardware Validation 전 확정하지 않음
+
+## 남은 연동
+
+- Unity SMT Transfer Speed 최종 보정
+- Finish Magazine Straight Insert 최종 확인
+- Unity ↔ ROS2 ↔ Actual FR5 End-to-End 검증
+- 실제 FR5 Motion/Feedback 최종 검증
+- 대표 이미지 / 검증 영상 추가
+
+큰 구조나 Motion Policy를 다시 설계하는 단계는 종료했고, 현재는 통합과 최종 검증 단계에 있습니다.
+
+---
+
+[문서 목차](README.md) · [프로젝트 README](../README.md)

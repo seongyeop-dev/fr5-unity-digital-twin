@@ -1,15 +1,15 @@
-# 문서 목차
-
-이 폴더는 FR5 Unity Digital Twin의 공개용 포트폴리오 문서입니다.
+# 문서 목록
 
 | 문서 | 내용 |
-|---|---|
-| [01_overview.md](01_overview.md) | 프로젝트 배경, 목표, 결과 |
-| [02_architecture.md](02_architecture.md) | Unity·ROS2·Gazebo·MoveIt2·SDK 아키텍처 |
-| [03_features.md](03_features.md) | 구현 기능 |
-| [04_data_flow.md](04_data_flow.md) | 주요 데이터·명령 흐름 |
-| [05_validation.md](05_validation.md) | 검증 결과와 기준 |
-| [06_project_scope.md](06_project_scope.md) | 완료·진행·미검증 범위 |
-| [07_project_structure.md](07_project_structure.md) | 저장소 구조와 핵심 파일 |
+|:---|:---|
+| [01. Overview](01_overview.md) | 개발 배경, 목표, 구현 범위와 현재 상태 |
+| [02. Architecture](02_architecture.md) | ROS2·Gazebo·MoveIt2·Unity·SDK 연결 구조와 책임 경계 |
+| [03. Features](03_features.md) | 모션 자동화, Unity Digital Twin, SDK 연동 주요 기능 |
+| [04. Data Flow](04_data_flow.md) | Joint State, Command, Workcell Event와 Jig Ownership 흐름 |
+| [05. Validation](05_validation.md) | Motion, Planning Scene, Unity, SDK 검증 기준과 결과 |
+| [06. Project Scope](06_project_scope.md) | 문제 해결, 완료 범위, 제한과 남은 연동 |
+| [07. Project Structure](07_project_structure.md) | Ubuntu Python/ROS2와 Unity C# 스크립트 구조 및 역할 |
 
-`images/`에는 이후 GitHub README와 상세 문서에서 사용할 대표 스크린샷만 선별해 넣습니다.
+---
+
+[프로젝트 README](../README.md)

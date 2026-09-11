@@ -2,94 +2,99 @@
 
 ## 검증 원칙
 
-각 PASS는 검증 범위를 함께 표시합니다.
-
-Unity 화면에서 움직였다는 사실만으로 실제 FR5 제어가 검증됐다고 판단하지 않습니다.
-
-## 결과 요약
-
-| 영역 | 검증 | 결과 |
-|---|---|---|
-| Gazebo Gripper | Open / Close Command | PASS |
-| ROS2 → Unity | `/joint_states` 수신 및 Joint 매핑 | PASS |
-| Unity → ROS2 | Command Publish / Listener | PASS |
-| ROS2 → Gazebo | Arm Controller 실행 | PASS |
-| MoveIt2 | Plan / Execute → Gazebo | PASS |
-| Python | MDH Ground Truth | PASS |
-| C# Bridge | Read-only / Mock Feedback | PASS |
-| ROS2 Slot | TAKE1~TAKE7 One-Take | PASS |
-| Unity Source | Slot01~07 / Slot08 EMPTY | PASS |
-| Unity External Input | Edit Mode 준비 | PASS |
-| Unity Finish | 최종 이동 동작 | 개선 중 |
-
-## ROS2 Self Check 이력
-
-과거 통합 검증 결과:
+기능을 한 번에 전체 수정하기보다 현재 상태를 확인한 뒤 한 부분만 수정하고 Static/Runtime/Visual 검증을 거쳐 기준을 고정하는 방식으로 작업했습니다.
 
 ```text
-PASS 39
-WARN 0
-FAIL 0
+Inspect
+→ Modify
+→ Static Check
+→ Runtime / Simulation
+→ Visual Check
+→ Lock
 ```
 
-## Slot One-Take
+## ROS2 / Gazebo / MoveIt2
 
-최종 Master SHA256:
+| 항목 | 확인 내용 | 결과 |
+|:---|:---|:---:|
+| ROS2 State | `/joint_states` 확인 | PASS |
+| Planning Scene | 주요 Workcell Collision Object | PASS |
+| Cartesian Path | 주요 Pick/Insert 구간 Full Path | PASS |
+| Jig Follower | Tool-to-Jig Relative Pose 유지 | PASS |
+| Negative J6 | 모든 Trajectory Point `J6 < 0` | PASS |
+| TAKE1 | Slot01 One-Take | PASS |
+| TAKE2 | Slot02 One-Take | PASS |
+| TAKE3 | Slot03 One-Take | PASS |
+| TAKE4 | Slot04 One-Take | PASS |
+| TAKE5 | Slot05 One-Take | PASS |
+| TAKE6 | Slot06 One-Take | PASS |
+| TAKE7 | Slot07 One-Take | PASS |
+| TAKE8 | Slot08 | 운영 제외 |
+
+최종 Master:
+
+```text
+src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
+```
+
+SHA256:
 
 ```text
 80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
 ```
 
-```text
-TAKE1 ~ TAKE7 : 최종 PASS
-TAKE8         : 미사용
-```
+## Slot / Motion 검증
 
-## Unity Source / Finish 정적 검증
+- Slot01 검증값 유지
+- Slot02 이상 PREGRASP 적용
+- Final Pre-Insert / Insert Position 확인
+- Extract / Retreat 직선 이동 확인
+- Slot03~07 ACTION05 미사용
+- Slot01~02 ACTION05 사용
+- TAKE1~07 최종 재실행 후 Visual PASS 확인
 
-2026-09-11 기준:
+## Unity 검증
 
-```text
-C# static compile:
-CSC_EXIT_CODE=0
+확인한 항목:
 
-Offline contract:
-1810 PASS
+- ROS2 Joint State Runtime Sync
+- Source Slot01~07 유지
+- Slot08 EMPTY
+- Legacy Visual 비활성화
+- External FR5 Input Mode
+- Source → Carried → Runtime → Finish Ownership 전환
+- SMT Process Sequence
+- Finish Handoff 구조
+- Edit Mode 기준 보호
+- Scene SHA 변경 여부
 
-git diff --check:
-PASS
-```
+C# 수정 후 가능한 범위에서 다음 검증을 함께 사용했습니다.
 
-코드 작업 단계에서는 Scene을 저장하지 않았습니다.
+- C# Static Compile / Contract Check
+- Offline Contract Validation
+- `git diff --check`
+- Scene SHA 작업 전/후 비교
 
-## Unity Edit Mode
+## SDK / Actual Robot 검증 경계
 
-Source / Finish Configure:
+SDK 구조와 Read-only Feedback/Command Path는 구성했지만, 실제 Robot Motion 검증은 Simulation PASS와 분리해 기록합니다.
 
-```text
-Source 7                    : PASS
-Slot08 EMPTY                : PASS
-Protected Transform 유지    : PASS
-UI / Camera 유지            : PASS
-Scene Save                  : 없음
-```
+최종 실제 장비 검증 예정 항목:
 
-External FR5 Input Prepare:
+- Unity → ROS2 → FR5 Command Full Path
+- Actual FR5 Motion과 Unity Joint Feedback 동기화
+- Magazine Motion 실제 환경 Calibration
+- 실제 Robot Speed / Safety 확인
 
-```text
-ExternalFr5 mode            : 준비 완료
-Legacy owners               : inactive
-Protected SMT transforms    : unchanged
-Scene Save                  : 없음
-```
+## 현재 Unity 최종 보정
 
-## 현재 개선 중인 항목
+현재 마지막 Unity 검증 항목은 다음 두 가지입니다.
 
-Play Mode 육안 확인에서 다음 두 항목을 발견했습니다.
+- SMT Jig Transfer 구간 World-space Speed 통일
+- Unloader → Finish Magazine Straight Insert 시 Rotation 유지
 
-```text
-Inspection → Conveyor02 이동 속도 과다
-Finish Magazine 삽입 직전 Jig 회전
-```
+이 항목은 최종 Play Mode 확인 후 문서 상태를 갱신할 예정입니다.
 
-최종 PASS 전에 두 항목을 다시 검증할 예정입니다.
+---
+
+[문서 목차](README.md) · [프로젝트 README](../README.md)

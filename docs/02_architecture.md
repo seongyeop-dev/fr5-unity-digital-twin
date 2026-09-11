@@ -1,102 +1,140 @@
 # 02. 시스템 아키텍처
 
-## 전체 구조
+## 전체 연결 구조
 
 ```text
-┌─────────────────────────────┐
-│ 실제 FAIRINO FR5 / FR5 SDK │
-└──────────────┬──────────────┘
-               │
-               ▼
-┌─────────────────────────────┐
-│ ROS2 Jazzy                  │
-│ JointState / Command / TF   │
-└──────────────┬──────────────┘
-               │
-      ┌────────┴────────┐
-      ▼                 ▼
-┌──────────────┐  ┌──────────────┐
-│ MoveIt2      │  │ Gazebo Sim 8 │
-│ Planning / IK│  │ Physics      │
-└──────────────┘  └──────┬───────┘
-                          │
-                          ▼
-                 ┌─────────────────┐
-                 │ Unity           │
-                 │ Digital Twin    │
-                 └─────────────────┘
+FAIRINO FR5
+    │
+    │ FR5 SDK
+    ▼
+Robot Interface
+    │
+    ▼
+   ROS2
+    │
+ ┌──┴────────────┐
+ ▼               ▼
+MoveIt2        Gazebo
+Motion         Workcell / Physics
+Planning           │
+ └───────┬─────────┘
+         ▼
+  Joint State / Event
+         │
+         ▼
+       Unity
+ Digital Twin / UI / Process
 ```
 
-## Unity
+## 계층별 역할
 
-Unity의 역할:
+| 계층 | 역할 |
+|:---|:---|
+| FAIRINO FR5 / SDK | 실제 Robot State 및 Command Interface |
+| ROS2 | Joint State, Command, Status, Workcell Event 전달 |
+| MoveIt2 | IK, Joint/Cartesian Planning, Trajectory 실행 |
+| Gazebo | Robot과 Workcell의 물리 상태 및 Jig 이동 검증 |
+| Unity | Robot 상태 시각화, UI, Workcell Runtime, SMT Process |
 
-- FR5 Robot Visual
-- Workcell
-- SMT 생산라인
-- Source / Finish Magazine
-- Runtime UI
-- Process Camera
-- ROS2 / C# Bridge 상태 표현
+## ROS2 구조
 
-기준 Scene:
+ROS2는 Simulation, Unity, Robot Interface 사이를 연결하는 중간 계층으로 사용했습니다.
 
-```text
-Assets/Project/Scenes/01_FR_Simulator.unity
-```
-
-## ROS2
-
-ROS2의 역할:
+주요 데이터는 다음과 같습니다.
 
 - `/joint_states`
-- Unity 명령 수신
-- Arm / Gripper Controller
-- MoveIt2 실행
-- Gazebo 상태 전달
+- Unity Command Topic
+- Command Status Topic
+- Workcell Event
+- TF
 
-## Gazebo
+로컬 FR5 Simulation은 주로 `ROS_DOMAIN_ID=90`에서 운영하고, Unity 또는 외부 PC 연결 시 Network Mode를 별도로 사용했습니다.
 
-Gazebo는 Robot Motion, Physics, Gripper, Jig, Magazine, Conveyor를 검증하는 시뮬레이션 계층입니다.
+## MoveIt2 / Gazebo 책임 경계
 
-시각 외형의 검증 기준도 RViz보다 Gazebo를 우선했습니다.
+Gazebo에 설비가 존재하는 것만으로 MoveIt Collision이 구성되지 않기 때문에 Planning Scene에 별도의 Collision Object를 생성했습니다.
 
-## MoveIt2
-
-MoveIt2의 역할:
-
-- Planning
-- IK
-- Collision Check
-- Start State 검증
-- Trajectory Execution
-
-## Python
-
-Python은 실시간 제어 대신 다음 용도로 사용합니다.
+주요 Planning Scene Object:
 
 ```text
-FR5 MDH
-→ FK
-→ Ground Truth
-→ Unity C# FK 비교
+gazebo_fr5_robot_table_v2
+gazebo_fr5_magazine_visual_probe
+gazebo_fr5_magazine_conveyor_probe
+gazebo_fr5_jig_place_conveyor_probe
 ```
 
-## C# SDK Bridge
+Gazebo와 MoveIt의 Z 기준 차이는 Planning Scene 변환에서 보정하고 FR5 Robot Base는 고정했습니다.
 
-FR5 SDK 연결은 Read-only와 Mock Feedback부터 검증했습니다.
+## Unity 내부 계층
 
 ```text
-FR5 SDK / Mock
-→ C# Bridge
-→ JSON
-→ Unity Runtime Source
+ROS2 / SDK Feedback
+        ↓
+scr_FR5Ros2JointStateClient
+        ↓
+scr_FR5RuntimeSyncManager
+        ↓
+scr_VirtualJointController
+        ↓
+Unity FR5 J1~J6
 ```
 
-Mock 검증 결과를 실제 Robot Motion 완료로 해석하지 않습니다.
+UI Command는 별도 경로로 분리했습니다.
 
-## 설계 원칙
+```text
+UI
+ ↓
+scr_FR5UICommandRouter
+ ↓
+scr_FR5Ros2CommandPublisher
+ ↓
+ROS2 Command
+ ↓
+Ubuntu Listener / Controller
+```
 
-실제 Robot, ROS2/Gazebo, Unity의 책임을 섞지 않는 것이 핵심입니다.
+Unity UI가 SDK 함수나 MoveIt 실행 세부 구현에 직접 의존하지 않도록 Router/Publisher 계층을 분리했습니다.
 
-Unity Coroutine으로 움직인 Object는 실제 FR5 제어 완료로 취급하지 않습니다.
+## Simulation / Actual Robot 분리
+
+```text
+Simulation
+Gazebo / MoveIt2
+      ↓
+ROS2 Joint State
+      ↓
+Unity
+```
+
+```text
+Actual Robot
+FR5
+ ↓
+FR5 SDK
+ ↓
+Bridge / ROS2
+ ↓
+Unity
+```
+
+Simulation PASS와 Actual Robot PASS를 같은 상태로 기록하지 않고, 실제 장비 검증이 필요한 항목은 별도로 관리했습니다.
+
+## Workcell 책임 분리
+
+Unity Workcell에서는 Robot Motion을 다시 계산하지 않고 FR5 이후 공정과 Visual State를 관리합니다.
+
+```text
+FR5 Place Event
+      ↓
+Jig Ownership Handoff
+      ↓
+SMT Process Controller
+      ↓
+Finish Magazine
+```
+
+이 구조로 Robot Motion, Physics, Process Visualization의 책임을 분리했습니다.
+
+---
+
+[문서 목차](README.md) · [프로젝트 README](../README.md)

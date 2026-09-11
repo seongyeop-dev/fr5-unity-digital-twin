@@ -1,92 +1,137 @@
 # 04. 데이터 흐름
 
-## 1. Robot / Gazebo → Unity
+## 전체 Runtime 흐름
 
 ```text
-FR5 또는 Gazebo
-→ /joint_states
-→ ROS TCP Endpoint
-→ Unity ROSConnection
-→ JointState Client
-→ Runtime Sync Manager
-→ Virtual Joint Controller
-→ FR5 Visual
+Robot / Simulator
+      ↓
+ROS2 State / Event
+      ↓
+Unity Runtime
+      ↓
+Robot View / Workcell / UI
 ```
 
-핵심은 Joint 배열 Index가 아니라 `JointState.name`으로 매핑하는 것입니다.
+## Joint State 흐름
 
-## 2. Unity → ROS2 → Gazebo
+```text
+Gazebo 또는 FR5 Feedback
+        ↓
+     /joint_states
+        ↓
+scr_FR5Ros2JointStateClient
+        ↓
+scr_FR5RuntimeSyncManager
+        ↓
+scr_VirtualJointController
+        ↓
+Unity FR5 J1~J6
+```
+
+Joint Name을 기준으로 J1~J6 값을 추출하고 ROS radian 값을 Unity Joint 기준으로 변환한 뒤 Local Rotation에 적용합니다.
+
+## Unity Command 흐름
 
 ```text
 Unity UI
-→ JSON Command
-→ /fr5/unity_command
-→ fr5_unity_command_listener
-→ /fr5_arm_controller/joint_trajectory
-→ Gazebo
-→ /joint_states
+   ↓
+scr_FR5UICommandRouter
+   ↓
+scr_FR5Ros2CommandPublisher
+   ↓
+ROS2 Command Topic
+   ↓
+Ubuntu Listener
+   ↓
+MoveIt / Robot Interface
+   ↓
+Command Status
+   ↓
+Unity
+```
+
+UI와 Robot 실행 로직을 직접 연결하지 않고 Command Router와 ROS2 Publisher를 사이에 두었습니다.
+
+## MoveIt / Gazebo Motion 흐름
+
+```text
+Current Joint State
+       ↓
+Slot Configuration
+       ↓
+Planning Scene Check
+       ↓
+Joint / Cartesian Planning
+       ↓
+Trajectory Validation
+       ↓
+Execute
+       ↓
+Gazebo FR5 Motion
+       ↓
+Jig Rigid Follower
+```
+
+Slot별 Configuration은 Python Master와 YAML 설정으로 분리해 관리합니다.
+
+## Jig Ownership 흐름
+
+```text
+Source Jig
+   │ PICK_DONE
+   ▼
+Carried Jig
+   │ PLACE_DONE
+   ▼
+SMT Runtime Jig
+   │ Finish Complete
+   ▼
+Finish Jig
+```
+
+이벤트가 발생할 때 위치만 옮기는 것이 아니라 현재 Jig Visual의 소유 상태를 함께 변경합니다.
+
+## Unity SMT Process 흐름
+
+```text
+PLACE_DONE / External FR5 Input
+          ↓
+    EQ_Conveyor_01
+          ↓
+       Mounter
+          ↓
+      Inspection
+          ↓
+    EQ_Conveyor_02
+          ↓
+       Unloader
+          ↓
+   Finish Magazine
+```
+
+Process Controller는 Jig Transfer와 Process Dwell을 구분해 관리합니다.
+
+## Simulation / Actual Feedback 흐름
+
+Simulation:
+
+```text
+Gazebo / MoveIt2
+→ ROS2
 → Unity
 ```
 
-## 3. MoveIt2
+Actual Robot:
 
 ```text
-Target Pose
-→ MoveIt2 Planning
-→ Collision / IK
-→ Trajectory
-→ Gazebo Controller
-→ Robot Motion
+FR5
+→ FR5 SDK
+→ Bridge / ROS2
+→ Unity
 ```
 
-## 4. Python Ground Truth
+두 경로가 같은 Unity Runtime으로 들어오더라도 입력 모드를 분리해 Test Value와 External Feedback이 동시에 적용되지 않도록 구성했습니다.
 
-```text
-Joint Degree
-→ MDH Parameter
-→ FK
-→ Position / Rotation
-→ JSON / CSV / TXT
-→ Unity C# FK 비교
-```
+---
 
-## 5. C# SDK Bridge
-
-```text
-FR5 SDK 또는 Mock
-→ C# Bridge
-→ State JSON
-→ Unity CSharpBridge Source
-→ Runtime Sample
-→ UI / Robot Visual
-```
-
-## 6. SMT External Jig
-
-```text
-FR5 Jig Release
-→ TryAcceptFr5InsertedJig()
-→ 3초 초기 Dwell
-→ EQ_Conveyor_01
-→ EQ_Mounter_01
-→ EQ_Inspection_01
-→ EQ_Conveyor_02
-→ EQ_Unloader
-→ Finish Magazine
-```
-
-External 모드에서는 다음 Jig를 자동 생성하지 않습니다.
-
-## 7. Finish Visual Hand-off
-
-목표 흐름:
-
-```text
-Unloader 도착
-→ Finish Lift 높이 정렬
-→ Jig 직선 삽입
-→ Runtime Jig 비활성
-→ filledSlot 활성
-```
-
-현재 구현은 이 구조를 사용하지만 삽입 직전 Rotation 제거를 추가 검증 중입니다.
+[문서 목차](README.md) · [프로젝트 README](../README.md)
