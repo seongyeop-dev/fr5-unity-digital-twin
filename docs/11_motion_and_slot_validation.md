@@ -147,6 +147,30 @@ Motion 검증 전에 다음 상태가 함께 맞아야 합니다.
 
 Robot Motion 문제를 설비 표시나 RViz Visual 문제와 혼동하지 않도록 Runtime State와 Planning Scene을 분리해 확인했습니다.
 
+## Laptop Final Revalidation
+
+개발 PC에서 확정한 Motion Master를 노트북 Ubuntu Runtime에서도 다시 실행했습니다.
+
+```text
+Laptop ROS2 HEAD
+f02799cfd3126210ef72238990861c9c027c84af
+
+Final Master SHA256
+80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
+```
+
+Gazebo true headless + MoveIt2 상태에서 `FR5_TAKE=ALL --execute`를 실행했고,
+TAKE1부터 TAKE7까지 순차 완료 후 다음 결과를 확인했습니다.
+
+```text
+FINAL ONE-TAKE TAKE1 -> TAKE7 PASS
+FINAL_MASTER_RETURN_CODE=0
+TAKE1_TO_TAKE7_FINAL_SIMULATION=PASS
+```
+
+노트북 성능 차이를 이유로 Slot Pose, IK Branch, Negative-J6 기준,
+Pick/Insert Motion을 다시 튜닝하지 않았습니다.
+
 ## 검증 방식
 
 ```text

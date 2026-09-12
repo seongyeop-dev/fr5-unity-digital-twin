@@ -4,7 +4,7 @@
 
 개발 PC에서 검증한 Simulation Motion과 Command Backend를 같은 Git 기준으로 노트북에 재현하기 위한 인계 문서입니다. 파일을 수동 복사하는 대신 Git lineage, 보호 파일 SHA256, 새 Build, 단계별 Preflight로 실행 환경의 차이를 관리합니다.
 
-아래 확인 완료 항목은 개발 PC Ubuntu의 최종 확인 결과를 기준으로 합니다. 노트북 환경 복원과 실제 FR5 Hardware 검증은 아직 Pending이며, Simulation PASS와 구분합니다.
+개발 PC에서 확정한 Simulation 기준은 노트북 Ubuntu로 이관되었고, fresh build, Gazebo / MoveIt2 Runtime, Planning Scene, Final TAKE1~TAKE7 Simulation 실행까지 노트북에서 재검증을 완료했습니다. 실제 FR5 Hardware 검증은 아직 별도 단계이며 Simulation PASS와 구분합니다.
 
 ## Source of Truth
 
@@ -13,29 +13,39 @@
 | Repository | `git@github.com:seongyeop-dev/fr5_ros2_ws.git` |
 | Branch | `feat/fr5-gazebo-jig-attach-detach` |
 | Ubuntu Workspace | `~/fr5_ros2_ws` |
-| 개발 PC Local HEAD | `46cf3ace69154e8befb2fb3a78686cd931c3428a` |
-| GitHub origin branch HEAD | `46cf3ace69154e8befb2fb3a78686cd931c3428a` |
-| Ahead / Behind | `0 / 0` |
+| 개발 PC 최종 Simulation Baseline | `46cf3ace69154e8befb2fb3a78686cd931c3428a` |
+| Laptop Final Runtime HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
+| GitHub origin branch HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
+| Laptop Local / Remote parity | PASS |
 
-노트북 이관의 Source of Truth는 위 GitHub branch의 고정 commit입니다. 이 표는 최종 확인 시점의 parity이며, 향후 branch가 이동하더라도 인계 기준 commit과 보호 SHA를 별도로 비교합니다. 최종 Slot / Conveyor 배치 이전 상태인 기존 노트북 Workspace를 기준본으로 사용하지 않습니다.
+개발 PC의 `46cf3ace...`는 TAKE1~TAKE7 Motion을 확정한 기준 commit으로 보존합니다.
+노트북에서는 해당 기준을 fast-forward로 이관한 뒤,
+headless Gazebo Runtime 지원을 추가한 `f02799cfd3126210ef72238990861c9c027c84af`까지 검증했습니다.
+
+Motion Master 자체는 변경하지 않았으며 보호 SHA를 별도로 확인합니다.
 
 ## Locked Motion Baseline
 
 | Asset | Path | SHA256 | Role |
 |:---|:---|:---|:---|
 | Motion Master | `src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py` | `80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be` | 검증된 Slot Motion과 TAKE 선택 |
-| Slot YAML | `src/fr5_moveit_config/config/slot01_to_slot08_final_one_take_v1.yaml` | `b823401d6c77037ec35502a8e11ac35692f6f4a86ff7bf6eb8825a3f486e6` | Slot별 Motion 설정 |
+| Slot YAML | `src/fr5_moveit_config/config/slot01_to_slot08_final_one_take_v1.yaml` | `b823401d6c77037ec35502a8e11ac35692f6f4a86ff7bf6c8efb8825a3f486e6` | Slot별 Motion 설정 |
 | Workcell World | `src/fr5_gazebo/worlds/fr5_workcell.sdf` | `dac1c53f068aa56dd497cf3f66e64559dda1af010584566c71d96bf95104be65` | 최종 Gazebo 설비 배치 |
-| Workcell Launch | `src/fr5_gazebo/launch/fr5_workcell.launch.py` | `2abca81b2dfdd50777f48970bca8ad3cc213b37486742c8b22cfd647b45d9607` | Workcell 실행 기준 |
+| Workcell Launch | `src/fr5_gazebo/launch/fr5_workcell.launch.py` | `a6b8c094d9653ae3bc65fcd56df2714d912f5fee78bec51dd1e7c56b50daead6` | Workcell 및 headless Runtime 진입점 |
+| Gazebo Control Launch | `src/fr5_gazebo/launch/fr5_gazebo_control.launch.py` | `d2fd8e715b99ea1d65e1519b1cb8f198dfb09f8f48e61e31f13ded0f7edb907f` | Gazebo / ros2_control 및 `gz_args` 전달 |
 
 운영 정책:
 
 - TAKE1~TAKE7 사용, TAKE8 unused
 - ACTION05는 Slot01~02에서만 허용, Slot03~07에서는 금지
 - 검증된 Trajectory의 모든 Point에서 `J6 < 0`
-- 이관을 위해 Robot Base, Joint axis, 검증된 Pose/Trajectory 또는 설비 배치를 임의 보정하지 않음
+- Robot Base, Joint axis, 검증된 Pose/Trajectory 또는 설비 배치를 임의 보정하지 않음
+- 노트북 Runtime 성능 문제 해결을 위해 Motion 자체를 재튜닝하지 않음
 
-Motion 검증 내용은 [11. Motion & Slot Validation](11_motion_and_slot_validation.md)을 참고합니다.
+Motion 검증은
+[11. Motion & Slot Validation](11_motion_and_slot_validation.md),
+Laptop Runtime 상세는
+[15. Laptop ROS2 Simulation Runtime](15_laptop_ros2_simulation_runtime.md)을 참고합니다.
 
 ## ROS2 Runtime Contract
 
@@ -118,9 +128,16 @@ Master의 `ALL` 지원과 Unity OneTakeAll 버튼의 실행 연결은 서로 다
 
 ## Development PC Freeze
 
-개발 PC Ubuntu는 Simulation / Development 기준본 생성 역할을 종료합니다. 검증 결과는 GitHub의 `46cf3ace69154e8befb2fb3a78686cd931c3428a` 기준으로 보존하고, 이후 실제 FR5 연동은 노트북 Ubuntu에서 진행합니다.
+개발 PC Ubuntu는 Simulation Motion 기준본 생성 역할을 종료했습니다.
+TAKE1~TAKE7 Motion baseline은 개발 PC의
+`46cf3ace69154e8befb2fb3a78686cd931c3428a`에서 확정했습니다.
 
-개발 PC의 실행 프로세스, 절대 user 경로 또는 생성 산출물에 기대어 노트북을 구성하지 않습니다. 최종 Source 조사에서는 Runtime의 절대 user 경로 의존성과 Source symlink 의존성이 발견되지 않았습니다. 이 결과가 노트북의 의존성·장비·네트워크 검증을 대신하지는 않습니다.
+이후 ROS2 Simulation Runtime 운영 기준은 노트북 Ubuntu로 이동했으며,
+노트북 Final Runtime HEAD는 `f02799cfd3126210ef72238990861c9c027c84af`입니다.
+
+Windows 개발 PC는 Unity Digital Twin과 SDK Runtime을 유지하며,
+노트북 ROS2 / Gazebo / MoveIt2와 Network Integration 및
+동시 촬영을 담당하는 구조로 분리합니다.
 
 ## Laptop Migration Strategy
 
@@ -134,19 +151,35 @@ Master의 `ALL` 지원과 Unity OneTakeAll 버튼의 실행 연결은 서로 다
 
 ## Environment Restore
 
-Target은 Ubuntu 24.04 / ROS2 Jazzy / `ROS_DOMAIN_ID=90`입니다. 의존성을 복원하고 fresh build한 뒤 새 install 환경만 source합니다.
+Target은 Ubuntu 24.04.4 / ROS2 Jazzy / `ROS_DOMAIN_ID=90`입니다.
 
-아래는 commit/hash 검증이 끝난 노트북 Workspace에서 수행할 복원 절차 예시이며, 이 문서 작업에서 실행한 명령이 아닙니다.
+노트북에서 Source parity 확인 후 기존 build artifact를 기준으로 사용하지 않고
+fresh `colcon build --symlink-install`을 완료했습니다.
 
-```bash
-source /opt/ros/jazzy/setup.bash
-rosdep install --from-paths src --ignore-src -r -y --rosdistro jazzy
-colcon build --symlink-install
-source install/setup.bash
-export ROS_DOMAIN_ID=90
+최종 Laptop Runtime HEAD:
+
+```text
+f02799cfd3126210ef72238990861c9c027c84af
 ```
 
-`rosdep` 설정과 권한, 의존성 설치 결과를 먼저 확인합니다. 다른 Workspace의 install overlay를 중복 source하지 않으며, 환경 복원 과정에서는 Motion Master나 command bridge를 자동 실행하지 않습니다.
+Gazebo Simulation execute 경로에 필요한 Python binding도 확인했습니다.
+
+```text
+python3-gz-msgs10
+python3-gz-transport13
+```
+
+True headless 실행은 다음 launch 경로를 사용합니다.
+
+```bash
+ros2 launch fr5_gazebo fr5_workcell.launch.py \
+  gz_args:="-s -r"
+```
+
+검증 결과 Gazebo 단독 RTF `0.998`,
+MoveIt2 포함 RTF `0.997`을 확인했습니다.
+
+노트북 복원·fresh build·Simulation Runtime preflight는 더 이상 Pending 항목이 아닙니다.
 
 ## Pre-Hardware Validation
 
@@ -168,15 +201,24 @@ Build 성공, ROS 연결, Simulation `--execute`는 실제 FR5 Motion 허용을 
 
 ## Remaining Integration
 
-- Unity `RUN_TAKE` payload와 Slot/OneTakeAll 연결
-- Backend `RUN_TAKE` dispatch 및 검증된 Master 호출
-- request/status correlation과 Unity Status Subscriber
-- TAKE 실행 중 BUSY 및 중복 요청 처리
-- active Master를 대상으로 한 STOP·종료 처리
-- 노트북 Source 복원 / fresh build / read-only preflight 검증
-- 실제 FR5 feedback, command, 안전 중단 및 End-to-End Hardware 검증
+노트북 Simulation Runtime 자체의 이관과 실행 검증은 완료되었습니다.
 
-현재 상태는 **simulation motion baseline validated**, **backend command bridge implemented for legacy commands**, **TAKE selector verified in master**입니다. **Unity-to-TAKE dispatch remains an integration item**, **laptop hardware validation pending** 경계를 유지합니다.
+다음 통합 항목:
+
+- Laptop ROS-TCP Endpoint ↔ Windows Unity Live 연결
+- Unity ROS2 Runtime Source에서 실제 `/joint_states` 수신 확인
+- Gazebo / RViz / Unity 동일 동작 동시 표시 및 포트폴리오 촬영
+- Unity `RUN_TAKE` payload와 Backend Master dispatch 연결
+- request/status correlation, BUSY, 완료·중단 처리
+- active Master를 대상으로 한 STOP / 종료 처리
+- 실제 FAIRINO FR5 feedback / command / 안전 중단 검증
+- Actual Robot ↔ Unity SDK End-to-End 촬영 및 검증
+
+현재 상태는 **Laptop Simulation Runtime validated**,
+**TAKE1→TAKE7 Final Simulation PASS**입니다.
+
+Windows Unity Live Integration과 Actual Robot Hardware Validation은
+각각 별도 PASS 상태로 검증합니다.
 
 ---
 

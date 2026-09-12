@@ -26,6 +26,8 @@
 | [13. Design Decisions & Issues](13_design_decisions_and_issues.md) | 주요 문제, 원인, 설계 변경과 선택 기준 |
 | [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md) | Source of Truth, 보호 SHA, Backend 계약, 노트북 이관과 남은 Hardware 검증 |
 
+- [15. Laptop ROS2 Simulation Runtime](15_laptop_ros2_simulation_runtime.md) — 노트북 Ubuntu에서 재구성한 Gazebo / MoveIt2 / RViz Runtime, true headless, TAKE1~TAKE7 최종 재검증
+
 ## 미디어
 
 - [images/README.md](images/README.md): 최종 대표 이미지와 검증 영상 정리 기준

@@ -130,6 +130,23 @@ ROS2/Gazebo 최종 Motion Master SHA256:
 
 ROS2 인계 기준은 GitHub `feat/fr5-gazebo-jig-attach-detach`의 `46cf3ace69154e8befb2fb3a78686cd931c3428a`입니다. 개발 PC Ubuntu의 Local HEAD와 origin branch HEAD가 동일함을 확인했습니다. 개발 PC 역할은 종료하며, 노트북에서는 기존 작업을 보존하고 보호 SHA 확인 → fresh build → read-only preflight 순서로 복원합니다. 상세 기준은 [14. Deployment & Laptop Handoff](docs/14_deployment_and_handoff.md)에 정리했습니다.
 
+## Laptop ROS2 Simulation Runtime
+
+개발 PC에서 확정한 Simulation Motion 기준을 Ubuntu 24.04.4 / ROS2 Jazzy 노트북으로 이관해
+Gazebo 8, ros2_control, MoveIt2, RViz 실행 환경을 독립적으로 재구성했습니다.
+
+노트북 Final Runtime은 `f02799cfd3126210ef72238990861c9c027c84af` 기준이며,
+Final Motion Master SHA256 `80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be`를 유지한 채
+`TAKE1 → TAKE7` 전체 Simulation `--execute`를 다시 실행해 `RETURN_CODE=0`을 확인했습니다.
+
+성능 검증에서는 Gazebo true headless에서 RTF `0.998`,
+MoveIt2 포함 상태에서 RTF `0.997`을 확인했습니다.
+
+현재 다음 단계는 Laptop ROS2 / Gazebo / MoveIt / RViz와 Windows Unity Digital Twin을
+ROS-TCP로 연결해 동일 JointState 기반 동시 동작과 포트폴리오 영상을 검증하는 것입니다.
+
+상세 내용은 [15. Laptop ROS2 Simulation Runtime](docs/15_laptop_ros2_simulation_runtime.md)에 정리했습니다.
+
 ## 기술 스택
 
 | 구분 | 기술 |

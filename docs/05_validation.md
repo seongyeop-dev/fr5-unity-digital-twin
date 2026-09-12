@@ -55,22 +55,52 @@ SHA256:
 
 ## Source 재현성과 노트북 이관 기준
 
-아래는 개발 PC Ubuntu의 최종 확인 결과입니다. 노트북 restore나 실제 FR5 Hardware PASS를 뜻하지 않습니다.
+개발 PC에서 생성한 ROS2 Source를 노트북으로 이관한 뒤,
+기존 노트북 Workspace를 삭제하지 않고 Git lineage와 dirty 상태를 먼저 확인했습니다.
 
-| 항목 | 확인 내용 | 결과 |
-|:---|:---|:---:|
-| Git parity | Local / origin의 `46cf3ace69154e8befb2fb3a78686cd931c3428a` 일치, Ahead / Behind `0 / 0` | PASS |
-| Motion Master | 최종 SHA256 일치 | PASS |
-| Slot YAML | 최종 SHA256 parity | PASS |
-| Workcell World | 최종 SHA256 parity | PASS |
-| Workcell Launch | 최종 SHA256 parity | PASS |
-| Listener Source | `fr5_unity_command_listener.py` tracked Source 확인 | PASS |
-| Runtime 경로 | 조사 범위에서 절대 user 경로 의존성 미발견 | 확인 |
-| Source 의존성 | 조사 범위에서 Source symlink 의존성 미발견 | 확인 |
-| 노트북 restore | Source 복원, 의존성, fresh build, read-only preflight | Pending |
-| Actual FR5 | Hardware feedback / command / 안전 중단 / 종단 검증 | Pending |
+검증 결과:
 
-고정 branch, 파일별 경로와 SHA256은 [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md)의 기준표를 사용합니다. 개발 PC의 `build/`, `install/`, `log/`는 노트북에 복사하지 않습니다.
+| 항목 | 결과 |
+|:---|:---|
+| Branch | `feat/fr5-gazebo-jig-attach-detach` |
+| Laptop Local HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
+| GitHub origin HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
+| Local / Remote parity | PASS |
+| Fresh `colcon build --symlink-install` | PASS |
+| Final Master SHA | `80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be` |
+| 기존 local backup / untracked 보존 | PASS |
+
+개발 PC의 `build/`, `install/`, `log/`를 복사하지 않고
+노트북에서 fresh build한 결과를 Runtime 기준으로 사용했습니다.
+
+## Laptop Simulation Runtime 최종 검증
+
+노트북에서 Gazebo / ros2_control / MoveIt2 / RViz를 재구성한 뒤
+Final TAKE Master를 다시 실행했습니다.
+
+| 검증 | 결과 |
+|:---|:---:|
+| Gazebo Workcell | PASS |
+| Arm / Gripper Controller | PASS |
+| `/joint_states` | PASS |
+| MoveIt2 | PASS |
+| Planning Scene 4 Facility Objects | PASS |
+| Unexpected World Object | NONE |
+| Slot01~07 Jig | PASS |
+| Slot08 | EMPTY |
+| RViz 표시 | PASS |
+| Gazebo true headless RTF | `0.998` |
+| Headless + MoveIt2 RTF | `0.997` |
+| `TAKE1 → TAKE7 --execute` | PASS |
+| Final Master return code | `0` |
+
+초기 Laptop 실행에서 Simulation RTF 저하로 Master wall-clock timeout이 먼저 발생했지만,
+Robot은 최종 Pick target에 정상 도달하는 것을 확인했습니다.
+따라서 검증된 Motion을 다시 튜닝하지 않고 Gazebo server-only 실행 구조를 정리해
+Runtime 성능 문제를 해결했습니다.
+
+상세 결과는
+[15. Laptop ROS2 Simulation Runtime](15_laptop_ros2_simulation_runtime.md)을 참고합니다.
 
 ## Backend Command / TAKE 검증 경계
 

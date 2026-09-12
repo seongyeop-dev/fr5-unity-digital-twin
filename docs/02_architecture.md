@@ -95,6 +95,31 @@ Ubuntu Listener / Controller
 
 Unity UI가 SDK 함수나 MoveIt 실행 세부 구현에 직접 의존하지 않도록 Router/Publisher 계층을 분리했습니다.
 
+## Laptop Simulation Runtime
+
+최종 Simulation Runtime은 노트북 Ubuntu에서 독립 실행할 수 있도록 구성했습니다.
+
+```text
+Laptop Ubuntu / ROS2 Jazzy
+├─ Gazebo Sim 8 + ros2_control
+├─ MoveIt2
+├─ RViz2
+├─ Final TAKE Master
+└─ ROS-TCP Endpoint
+       ↓
+Windows Development PC
+└─ Unity Digital Twin
+```
+
+Gazebo physics / controller 실행과 MoveIt Planning은 노트북에서 담당하고,
+Unity는 ROS2 JointState를 받아 Digital Twin을 시각화하는 Runtime Source로 연결합니다.
+
+실제 FR5 SDK Source와 ROS2 Simulation Source가 동시에 같은 Unity Joint를
+구동하지 않도록 Runtime Source ownership을 분리합니다.
+
+노트북 Simulation Runtime의 설치·headless·RTF·TAKE 재검증은
+[15. Laptop ROS2 Simulation Runtime](15_laptop_ros2_simulation_runtime.md)에 정리했습니다.
+
 ## Simulation / Actual Robot 분리
 
 ```text
