@@ -1,37 +1,56 @@
+<a id="top"></a>
+
 # 05. 검증 결과
 
-## 검증 원칙
+> 이 프로젝트의 핵심 원칙은 **PASS의 범위를 계층별로 분리하는 것**입니다. Static PASS, Simulation PASS, Unity Live PASS, Actual Robot PASS는 서로 다른 상태입니다.
 
-기능을 한 번에 전체 수정하기보다 현재 상태를 확인한 뒤 한 부분만 수정하고 Static/Runtime/Visual 검증을 거쳐 기준을 고정하는 방식으로 작업했습니다.
+[문서 목차](README.md) · [프로젝트 README](../README.md) · [Motion Validation](11_motion_and_slot_validation.md)
 
-```text
-Inspect
-→ Modify
-→ Static Check
-→ Runtime / Simulation
-→ Visual Check
-→ Lock
+## 검증 방법
+
+```mermaid
+flowchart LR
+    I["Inspect"] --> M["Modify"]
+    M --> S["Static Check"]
+    S --> R["Runtime / Simulation"]
+    R --> V["Visual / Audit"]
+    V --> L["Lock"]
 ```
+
+이미 PASS한 Motion/Transform은 다음 기능 개발 때문에 임의 재튜닝하지 않았습니다.
+
+## 최종 Validation Matrix
+
+| 계층 | 검증 | 결과 |
+|:---|:---|:---:|
+| Git / Source | Laptop Local = origin | PASS |
+| Build | fresh `colcon build --symlink-install` | PASS |
+| Gazebo | Workcell / controller / `/clock` / `/joint_states` | PASS |
+| MoveIt2 | Planning Scene / Cartesian / Collision | PASS |
+| Planning Scene | Facility object 4개, unexpected 0 | PASS |
+| Motion | TAKE1→TAKE7 | PASS |
+| Motion | TAKE8 | OUT OF SCOPE |
+| Trajectory | Negative J6 Guard | PASS |
+| Jig | LIVE TF follower | PASS |
+| Performance | headless RTF `0.998` | PASS |
+| Performance | headless + MoveIt2 RTF `0.997` | PASS |
+| Unity | Camera 01~10 switching | PASS |
+| Unity | Game View output 1 | PASS |
+| Unity | AudioListener 1 | PASS |
+| Unity | STOP listener 1 | PASS |
+| Unity | Workcell Status Text binding | PASS |
+| Unity | Camera/Follow static regression | PASS |
+| Unity | UI Button 96개 read-only audit | AUDITED |
+| Recorder | Recorder 5.1.7 install | PASS |
+| Recorder | FHD 1080p30 config | PASS |
+| Recorder | 실제 MP4 sample | PENDING |
+| ROS2↔Unity | Live JointState E2E | PENDING |
+| Unity→TAKE | RUN_TAKE / correlation / BUSY / active STOP | PENDING |
+| Actual FR5 | Feedback / Command / Safety | PENDING |
 
 ## ROS2 / Gazebo / MoveIt2
 
-| 항목 | 확인 내용 | 결과 |
-|:---|:---|:---:|
-| ROS2 State | `/joint_states` 확인 | PASS |
-| Planning Scene | 주요 Workcell Collision Object | PASS |
-| Cartesian Path | 주요 Pick/Insert 구간 Full Path | PASS |
-| Jig Follower | Tool-to-Jig Relative Pose 유지 | PASS |
-| Negative J6 | 모든 Trajectory Point `J6 < 0` | PASS |
-| TAKE1 | Slot01 One-Take | PASS |
-| TAKE2 | Slot02 One-Take | PASS |
-| TAKE3 | Slot03 One-Take | PASS |
-| TAKE4 | Slot04 One-Take | PASS |
-| TAKE5 | Slot05 One-Take | PASS |
-| TAKE6 | Slot06 One-Take | PASS |
-| TAKE7 | Slot07 One-Take | PASS |
-| TAKE8 | Slot08 | 운영 제외 |
-
-최종 Master:
+Final Master:
 
 ```text
 src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
@@ -43,125 +62,150 @@ SHA256:
 80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
 ```
 
-## Slot / Motion 검증
+최종 실행 결과:
 
-- Slot01 검증값 유지
-- Slot02 이상 PREGRASP 적용
-- Final Pre-Insert / Insert Position 확인
-- Extract / Retreat 직선 이동 확인
-- Slot03~07 ACTION05 미사용
-- Slot01~02 ACTION05 사용
-- TAKE1~07 최종 재실행 후 Visual PASS 확인
+```text
+FINAL ONE-TAKE TAKE1 -> TAKE7 PASS
+FINAL_MASTER_RETURN_CODE=0
+TAKE1_TO_TAKE7_FINAL_SIMULATION=PASS
+```
 
-## Source 재현성과 노트북 이관 기준
+Slot08 Jig는 spawn하지 않고 TAKE8은 운영하지 않습니다.
 
-개발 PC에서 생성한 ROS2 Source를 노트북으로 이관한 뒤,
-기존 노트북 Workspace를 삭제하지 않고 Git lineage와 dirty 상태를 먼저 확인했습니다.
+### Planning Scene
 
-검증 결과:
+| Object | Elements |
+|:---|---:|
+| `gazebo_fr5_robot_table_v2` | 6 |
+| `gazebo_fr5_magazine_visual_probe` | 46 |
+| `gazebo_fr5_magazine_conveyor_probe` | 7 |
+| `gazebo_fr5_jig_place_conveyor_probe` | 200 |
+
+```text
+OBJECT_COUNT=4
+UNEXPECTED_WORLD_OBJECTS=NONE
+```
+
+## Laptop Runtime 재현성
 
 | 항목 | 결과 |
 |:---|:---|
 | Branch | `feat/fr5-gazebo-jig-attach-detach` |
-| Laptop Local HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
-| GitHub origin HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
-| Local / Remote parity | PASS |
-| Fresh `colcon build --symlink-install` | PASS |
-| Final Master SHA | `80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be` |
-| 기존 local backup / untracked 보존 | PASS |
+| Laptop HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
+| Remote parity | PASS |
+| Fresh build | PASS |
+| Master SHA 유지 | PASS |
+| 기존 backup / untracked 보존 | PASS |
 
-개발 PC의 `build/`, `install/`, `log/`를 복사하지 않고
-노트북에서 fresh build한 결과를 Runtime 기준으로 사용했습니다.
+개발 PC의 build artifact를 복사하지 않고 Source에서 fresh build했습니다.
 
-## Laptop Simulation Runtime 최종 검증
+## Unity Static / Offline Validation
 
-노트북에서 Gazebo / ros2_control / MoveIt2 / RViz를 재구성한 뒤
-Final TAKE Master를 다시 실행했습니다.
+기존 작업에서 다음 검증을 사용했습니다.
 
 | 검증 | 결과 |
 |:---|:---:|
-| Gazebo Workcell | PASS |
-| Arm / Gripper Controller | PASS |
-| `/joint_states` | PASS |
-| MoveIt2 | PASS |
-| Planning Scene 4 Facility Objects | PASS |
-| Unexpected World Object | NONE |
-| Slot01~07 Jig | PASS |
-| Slot08 | EMPTY |
-| RViz 표시 | PASS |
-| Gazebo true headless RTF | `0.998` |
-| Headless + MoveIt2 RTF | `0.997` |
-| `TAKE1 → TAKE7 --execute` | PASS |
-| Final Master return code | `0` |
+| Runtime C# static compile | Error 0 |
+| Editor C# static compile | Error 0 |
+| Workcell Status contract | 114 assertions PASS |
+| ROS / Feedback contract | 171 PASS |
+| RUN_TAKE offline regression | 2,527 PASS |
+| Slot regression | 1,070 PASS |
+| SMT regression | 24,241 PASS |
+| Camera / Follow regression | 403 PASS |
+| Korean UI / binding regression | 451 PASS |
 
-초기 Laptop 실행에서 Simulation RTF 저하로 Master wall-clock timeout이 먼저 발생했지만,
-Robot은 최종 Pick target에 정상 도달하는 것을 확인했습니다.
-따라서 검증된 Motion을 다시 튜닝하지 않고 Gazebo server-only 실행 구조를 정리해
-Runtime 성능 문제를 해결했습니다.
+이 결과는 코드/계약 검증이며 실제 ROS2 Live 또는 Actual Robot PASS를 의미하지 않습니다.
 
-상세 결과는
-[15. Laptop ROS2 Simulation Runtime](15_laptop_ros2_simulation_runtime.md)을 참고합니다.
+## Unity Scene Configuration Validation
 
-## Backend Command / TAKE 검증 경계
+Portfolio Scene 적용 후 Read-only Verify에서 확인한 기준:
 
-| 항목 | 현재 확인 범위 | 상태 |
-|:---|:---|:---:|
-| 기존 Command Bridge | MOVE_J / HOME / RESET / STOP 및 Gripper 명령 처리 | 구현 확인 |
-| Backend Status | `/fr5/command_status`, `std_msgs/msg/String` JSON Publisher | 구현 확인 |
-| Master selector | `FR5_TAKE=1`~`7`, `ALL`은 TAKE1→TAKE7 순차 실행 | 코드 확인 |
-| Unity → TAKE | Listener의 `RUN_TAKE` 및 Unity 요청 연결 | 미구현 |
-| TAKE lifecycle | request/status correlation, BUSY, active Master STOP | Pending |
-| Unity Status 수신 | Status Subscriber와 TAKE 완료 반영 | Pending |
+```text
+15 Cameras
+= 4 RenderTexture Cameras
++ Main Camera
++ 10 Portfolio Shot Cameras
 
-Backend Status Publisher의 존재와 Unity의 상태 수신 완료는 별도로 판정합니다. Master selector 확인은 Simulation 기준이며 실제 FR5 실행 검증을 대신하지 않습니다.
+Game View output = 1
+AudioListener = 1
+STOP listener = 1
+Workcell Text bound = PASS
+```
 
-## Unity 검증
+Camera switching은 Play Mode에서 `1~9`, `0`, Main fallback 전환을 확인했습니다. 최종 pose/FOV는 실제 ROS2 촬영 시 미세조정합니다.
 
-확인한 항목:
+## UI Button Audit
 
-- ROS2 Joint State Runtime Sync
-- Source Slot01~07 유지
-- Slot08 EMPTY
-- Legacy Visual 비활성화
-- External FR5 Input Mode
-- Source → Carried → Runtime → Finish Ownership 전환
-- SMT Process Sequence
-- Finish Handoff 구조
-- Edit Mode 기준 보호
-- Scene SHA 변경 여부
+Read-only Live Scene Audit에서 사용자 Button 96개를 수집했습니다.
 
-C# 수정 후 가능한 범위에서 다음 검증을 함께 사용했습니다.
+| 항목 | 결과 |
+|:---|---:|
+| 전체 Button | 96 |
+| Persistent listener 1개 | 85 |
+| Persistent listener 0개 | 9 |
+| Persistent listener 2개 | 2 |
+| Missing Target | 0 |
+| Missing Method | 0 |
+| Missing Script | 0 |
+| STOP listener | 1 |
 
-- C# Static Compile / Contract Check
-- Offline Contract Validation
-- `git diff --check`
-- Scene SHA 작업 전/후 비교
+추가 source trace가 필요한 항목:
 
-## SDK / Actual Robot 검증 경계
+- `Btn_ResetToolOffset`: 2 persistent listeners
+- `Btn_RESET VIEW`: 2 persistent listeners
+- `Btn_OneTakeAll`, `Btn_Slot01~08`: 0 persistent listener — Runtime `AddListener` 여부 별도 확인
 
-SDK 구조와 Read-only Feedback/Command Path는 구성했지만, 실제 Robot Motion 검증은 Simulation PASS와 분리해 기록합니다.
+따라서 96개 모두를 “실제 기능 실행 PASS”로 해석하지 않고, Scene binding audit와 Runtime execution을 구분합니다.
 
-최종 실제 장비 검증 예정 항목:
+## Recorder Validation
 
-- Unity → ROS2 → FR5 Command Full Path
-- Actual FR5 Motion과 Unity Joint Feedback 동기화
-- Magazine Motion 실제 환경 Calibration
-- 실제 Robot Speed / Safety 확인
+현재 완료:
 
-## 현재 Unity 최종 검증
+- `com.unity.recorder@5.1.7` UPM 설치
+- Movie Clip
+- Game View
+- FHD 1080p
+- 16:9
+- H.264 MP4
+- High
+- Constant 30 FPS
+- Audio OFF
+- `Project/Recordings`
 
-Unity 공정의 마지막 두 항목은 코드 수정과 정적 검증까지 완료했습니다.
+남은 검증:
 
-- SMT Jig Transfer: 기존 Conveyor 기준 `0.15 m/s` 공통 World-space 선속도 적용
-- 이동 시간: `duration = world_distance / speed` 기준으로 계산
-- Finish Insert: Unloader 도착 시점의 Jig World Rotation 유지
-- Rotation 검증: 삽입 시작/완료 `Quaternion.Angle` 기준 drift `<= 0.01°`
-- Static C# Compile: `CSC_EXIT_CODE=0`
-- Offline Contract: 24,241 assertions PASS
-- Scene SHA256 전/후 동일: `E9D9C2F818BD7A8244AA80DC261BF659ACB507720DA9BAF272A54CBA03130ACE`
+- 5~10초 sample recording
+- 실제 MP4 존재 / 재생 / 1920×1080 확인
+- 촬영 시 Camera framing 미세조정
 
-Scene과 Play Mode는 자동으로 변경하지 않았으며, 최종 상태 표기는 사용자의 Unity Play Mode 시각 검증 후 확정합니다.
+## Backend Command / TAKE 경계
+
+| 항목 | 상태 |
+|:---|:---:|
+| Legacy Command Listener | IMPLEMENTED |
+| `/fr5/command_status` Publisher | IMPLEMENTED |
+| Master `FR5_TAKE=1..7/ALL` | 확인 |
+| Unity Slot selection / mapping | 구현 |
+| `RUN_TAKE` Listener dispatch | PENDING |
+| request/status correlation | PENDING |
+| BUSY / completion lifecycle | PENDING |
+| active Master STOP | PENDING |
+
+## Actual Robot 경계
+
+Actual FR5에서 최종 확인해야 하는 항목:
+
+- FR5 SDK Joint Feedback
+- ROS2 ↔ Actual Joint mapping
+- Unity Joint live sync
+- Actual Command Full Path
+- Speed / Safety
+- 실제 Workcell calibration
+- Emergency / Abort 범위
+
+Simulation PASS와 Hardware PASS를 같은 표기로 사용하지 않습니다.
 
 ---
 
-[문서 목차](README.md) · [프로젝트 README](../README.md)
+[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)

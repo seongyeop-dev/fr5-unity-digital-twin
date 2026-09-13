@@ -1,28 +1,48 @@
+<a id="top"></a>
+
 # 03. 주요 기능
+
+> 기능을 “있다/없다”가 아니라 **구현 상태와 검증 상태를 함께** 기록합니다.
+
+[문서 목차](README.md) · [프로젝트 README](../README.md) · [Validation](05_validation.md)
+
+## 기능 Matrix
+
+| 영역 | 기능 | 상태 |
+|:---|:---|:---:|
+| Gazebo | FR5 Workcell / Controller | PASS |
+| MoveIt2 | Planning Scene / Joint / Cartesian | PASS |
+| Motion | TAKE1~TAKE7 | PASS |
+| Motion | TAKE8 | OUT OF SCOPE |
+| Motion | Negative-J6 Guard | PASS |
+| Jig | LIVE TF rigid follower | PASS |
+| Unity | ROS2 JointState Sync | IMPLEMENTED |
+| Unity | Source / Finish Magazine | IMPLEMENTED |
+| Unity | Jig Ownership | IMPLEMENTED |
+| Unity | SMT Process | IMPLEMENTED |
+| Unity | Camera 10-shot switching | PASS |
+| Unity | Cinematic Follow | IMPLEMENTED / Play Mode switching PASS |
+| Unity | Recorder 5.1.7 | PASS (Install / Config) |
+| Unity | Recorder MP4 sample | PENDING |
+| GUI | Workcell Status Text | PASS (Scene Verify) |
+| GUI | STOP single listener | PASS |
+| GUI | 96 Button Audit | AUDITED |
+| ROS2↔Unity | Live JointState E2E | PENDING |
+| TAKE | Unity `RUN_TAKE` Backend | PENDING |
+| SDK | Read-only Feedback 구조 | IMPLEMENTED |
+| Actual FR5 | Hardware E2E | PENDING |
 
 ## ROS2 / Gazebo / MoveIt2
 
 ### Gazebo Workcell
 
-FR5 Robot을 기준으로 Robot Table, Magazine, Magazine Conveyor, Jig Place Conveyor, Jig Inventory를 배치해 Pick & Place 공정을 검증할 수 있는 Workcell을 구성했습니다.
-
-FR5 Base는 고정 기준으로 유지하고 설비 배치나 좌표 정합을 위해 Robot Geometry/Link 구조를 변경하지 않았습니다.
+FR5 Robot, Robot Table, Magazine, Magazine Conveyor, Jig Place Conveyor, Jig Inventory를 하나의 Simulation Workcell로 구성했습니다. Robot Base를 고정하고 표현 문제를 해결하기 위해 Robot Geometry를 바꾸지 않았습니다.
 
 ### MoveIt Planning Scene
 
-Gazebo의 주요 설비를 MoveIt Collision Object로 대응시켜 Motion Planning 중 설비 간섭을 확인할 수 있도록 구성했습니다.
-
-Allowed Collision Matrix는 필요한 예외만 허용하고 Table/설비 전체를 일괄 Ignore하지 않았습니다.
+Gazebo Facility와 대응하는 Collision Object를 MoveIt Planning Scene에 구성했습니다. Allowed Collision Matrix는 필요한 예외만 허용합니다.
 
 ### Slot01~07 One-Take
-
-최종 Master Script:
-
-```text
-src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
-```
-
-주요 흐름:
 
 ```text
 Gripper Open
@@ -30,134 +50,142 @@ Gripper Open
 → Gripper Close
 → Extract
 → Carry
-→ Final Pre-Insert
+→ Pre-Insert
 → Straight Insert
 → Gripper Open
 → Retreat
-→ Conveyor Release
+→ Conveyor
 ```
 
-Slot01은 검증된 Direct Pick 계열을 유지하고 Slot02 이상은 PREGRASP 후 짧은 Cartesian Approach를 적용했습니다.
+Final Master:
+
+```text
+src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
+```
 
 ### Cartesian Motion
 
-직선성이 필요한 다음 구간은 Cartesian Path를 우선 적용했습니다.
+직선성 자체가 기능 요구사항인 구간에 Cartesian Path를 사용했습니다.
 
 - Pick 직전 접근
 - Magazine Extract
-- Final Pre-Insert → Insert
+- Pre-Insert → Insert
 - Release 후 Retreat
 
-실행 전 Cartesian Fraction을 확인하고 Full Path가 나오지 않는 Branch는 사용하지 않았습니다.
+### Negative J6 Guard
 
-### Tool-to-Jig / Rigid Follower
-
-높은 Slot에서는 Tool Pose 단순 복사 대신 검증된 Tool-to-Jig Relative Transform과 Target Jig Pose를 이용해 Target Tool Pose를 계산했습니다.
-
-Jig를 최종 위치로 Teleport하지 않고 LIVE TF 기반 rigid follower로 Tool 이동을 따라가도록 구성했습니다.
-
-### Negative J6 Constraint
-
-높은 Slot에서 IK Wrist Branch가 변경되는 문제를 방지하기 위해 Trajectory 마지막 Point뿐 아니라 모든 Point에 대해 J6 Negative 여부를 검사했습니다.
+끝점만 정상인 trajectory가 중간에 다른 Wrist Branch로 넘어가는 문제를 막기 위해 전체 Point를 검사합니다.
 
 ```text
-J6 < 0
+for every trajectory point:
+    J6 < 0
 ```
 
-최종 Take1~Take7에서 이 조건을 유지했습니다.
+### Jig Rigid Follower
+
+Attach 시 Tool-to-Jig relative pose를 저장하고 LIVE TF를 사용해 Carry 구간에서 Jig가 Tool을 따라가도록 했습니다.
 
 ## Unity Digital Twin
 
-### ROS2 Joint State Sync
+### Joint Runtime Sync
 
-`/joint_states`를 받아 FR5 J1~J6 Joint Transform의 Local Rotation에 적용합니다.
-
-Robot Root를 매 Frame 이동시키지 않고 실제 Joint Hierarchy를 유지한 상태에서 Pose를 구성했습니다.
+```text
+/joint_states
+→ scr_FR5Ros2JointStateClient
+→ scr_FR5RuntimeSyncManager
+→ scr_VirtualJointController
+→ J1~J6
+```
 
 ### Source / Finish Magazine
 
-Source Magazine과 Finish Magazine의 역할을 분리했습니다.
-
-Source 기준:
-
 ```text
-Slot01~Slot07 : Jig 사용
-Slot08        : EMPTY
+Source Slot01~07 : Jig
+Source Slot08    : EMPTY
+Finish Magazine  : 완료 Jig 저장
 ```
-
-Finish Magazine은 SMT Process 종료 후 Runtime Jig를 최종 Slot Visual로 Handoff하는 구조입니다.
 
 ### Jig Visual Ownership
 
 ```text
-Source Slot Jig
-   ↓ PICK_DONE
-Carried Jig
-   ↓ PLACE_DONE
-SMT Runtime Jig
-   ↓ Finish Handoff
-Finish Jig
-```
-
-상태 전환 시 이전 Visual을 비활성화하고 다음 Visual을 활성화해 동일 Jig가 여러 위치에 동시에 보이는 문제를 방지했습니다.
-
-### Magazine Conveyor
-
-`MagazineConveyorController.cs`에서 Magazine 공급을 다음 Path로 관리합니다.
-
-```text
-Path_00_Start
-→ Path_01_Middle
-→ Path_02_Active
-→ Path_03_Exit
+Source
+→ Carried
+→ Runtime SMT
+→ Finish
 ```
 
 ### SMT Process
 
-`EquipmentProcessSequenceController.cs`에서 다음 공정 흐름을 관리합니다.
-
 ```text
-EQ_Conveyor_01
+Conveyor01
 → Mounter
 → Inspection
-→ EQ_Conveyor_02
+→ Conveyor02
 → Unloader
 → Finish Magazine
 ```
 
-Jig Transfer, Process Dwell, Unloader, Finish Handoff를 하나의 공정 순서 안에서 관리하되 Robot Joint Motion은 Unity에서 재계산하지 않습니다.
+Translation은 공통 `0.15 m/s` 기준으로 계산하고 Process dwell과 분리했습니다.
 
-### External FR5 Input
+## Unity Camera / Recording
 
-실제 ROS/FR5가 연결되지 않은 상태에서도 FR5 Place 이후 Unity SMT Process만 독립적으로 검증할 수 있도록 External Input Mode를 분리했습니다.
+### Camera Shot
+
+| Key | Shot |
+|:---:|:---|
+| `1` | FR5 Cell Wide |
+| `2` | Source Magazine |
+| `3` | Jig Insert |
+| `4` | Mounter |
+| `5` | Inspection |
+| `6` | Conveyor02 |
+| `7` | Unloader |
+| `8` | Top Overview |
+| `9` | FR5 Close-up |
+| `0` | Cinematic Follow |
+| `` ` `` | Main Camera |
+
+Play Mode에서 Shot 전환 자체는 확인했습니다. 최종 framing은 ROS2 Live 촬영 시 실제 동작을 보면서 조정합니다.
+
+### Recorder
+
+- Package: `com.unity.recorder@5.1.7`
+- Source: Game View
+- Resolution: FHD 1080p
+- Aspect: 16:9
+- Encoder: Unity Media Encoder
+- Codec: H.264 MP4
+- Quality: High
+- Frame: Constant 30 FPS
+- Audio: OFF
+- Output: `Project/Recordings`
+
+실제 sample MP4 생성은 아직 PENDING입니다.
+
+## GUI / UI Audit
+
+- STOP listener 1개
+- Workcell Status Text binding
+- 기술 고유명사 `FR5`, `ROS2`, `SDK`, `TCP`는 영문 유지
+- 신규 상태/공정 사용자 문구는 한국어 중심
+- Button 96개 read-only audit
+- Missing Target / Method / Script = 0
+- Reset 계열 2개 double-listener는 source trace 필요
+- Slot01~08 / OneTakeAll 9개 zero persistent listener는 Runtime `AddListener` trace 필요
 
 ## FR5 SDK / Robot Interface
 
-### Read-only Feedback
-
-실제 장비 연결에서는 Command보다 Joint/Robot State 확인을 먼저 구성했습니다.
-
-- Joint Value
-- Robot State
-- Connection State
-- Unity Runtime Feedback
-
-### Command Routing
+실제 Robot 연동은 다음 순서를 기본으로 합니다.
 
 ```text
-Unity UI
-→ Command Router
-→ ROS2 Command Publisher
-→ Ubuntu Listener
-→ Controller / MoveIt / Robot Interface
+Simulation
+→ Read-only Feedback
+→ Command Path
+→ Actual Robot Validation
 ```
 
-MOVE_J, HOME, RESET, STOP 등의 Command를 Listener에서 구분하고 Command Status를 별도로 반환하도록 구성했습니다.
-
-### Mode Separation
-
-Manual/Test, Simulation Feedback, Actual Robot Feedback가 서로 값을 덮어쓰지 않도록 Runtime Mode를 분리했습니다.
+Simulation 결과를 Hardware PASS로 승격하지 않습니다.
 
 ---
 
-[문서 목차](README.md) · [프로젝트 README](../README.md)
+[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)

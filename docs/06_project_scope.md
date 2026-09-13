@@ -1,77 +1,91 @@
+<a id="top"></a>
+
 # 06. 프로젝트 범위
 
-## 주요 문제 해결
+> 구현한 범위와 아직 검증하지 않은 범위를 명시해 포트폴리오의 기술적 경계를 분명하게 합니다.
 
-### 1. Slot 높이에 따른 Pick 간섭
+[문서 목차](README.md) · [프로젝트 README](../README.md)
 
-Slot01에서 안정적인 Direct Pick을 확보한 뒤 Slot이 높아질수록 Magazine Frame 간섭 위험이 증가했습니다. Slot02 이상에는 PREGRASP와 짧은 Cartesian Approach를 적용해 진입 경로를 분리했습니다.
+## 범위 요약
 
-### 2. Wrist IK Branch 전환
+| 영역 | 포함 |
+|:---|:---|
+| Motion | Gazebo + MoveIt2 Slot01~07 Pick & Place |
+| Physics | FR5 Workcell / ros2_control / Jig |
+| Digital Twin | Unity Joint Sync / GUI / Process |
+| Workcell | Source / Finish Magazine / SMT |
+| Visualization | 10-shot Camera / Follow / Recorder |
+| Interface | ROS2 Command / Status / SDK 구조 |
+| Deployment | Laptop Simulation Runtime |
+| Hardware | 구조/경계만 포함, 최종 실제 실행은 PENDING |
 
-높은 Slot에서 Wrist가 다른 Branch로 전환되는 현상을 확인해 Trajectory 전체 Point에서 Negative J6를 검사하는 조건을 추가했습니다.
-
-### 3. Gazebo / MoveIt 좌표 정합
-
-Gazebo Workcell과 MoveIt Collision Object의 Z 기준 차이를 Planning Scene 변환에서 보정했습니다. Robot Base 자체를 이동해 문제를 맞추는 방식은 사용하지 않았습니다.
-
-### 4. Jig Transport 표현
-
-Jig를 최종 위치로 즉시 이동시키는 대신 Tool-to-Jig Relative Transform과 LIVE TF 기반 rigid follower를 사용해 Carry 구간을 표현했습니다.
-
-### 5. Unity Jig 중복 표시
-
-Jig를 Source, Carried, Runtime, Finish 상태로 구분하고 Workcell Event 기준으로 Ownership을 전환해 동일 Jig가 여러 위치에 동시에 보이는 문제를 해결했습니다.
-
-### 6. Simulation과 Actual Robot 경계
-
-Unity Play Mode나 Gazebo `--execute`가 실제 FR5 Motion 허용과 같은 의미가 되지 않도록 Simulation, Read-only Feedback, Actual Command 경로를 분리했습니다.
-
-## 최종 구현 범위
+## 포함 범위
 
 ### Robot / Motion
 
 - FR5 Gazebo Simulation
-- MoveIt Planning Scene
-- Joint/Cartesian Motion
-- Slot01~07 One-Take
-- Jig Follow / Release / Conveyor
-- Trajectory Branch Validation
+- Planning Scene
+- Joint / Cartesian Motion
+- TAKE1~TAKE7
+- Jig follower
+- Negative-J6 Guard
+- Conveyor release
 
 ### Unity Digital Twin
 
-- FR5 Joint Runtime Sync
-- Workcell Layout
+- J1~J6 Runtime Sync
 - Source / Finish Magazine
-- Magazine Conveyor
 - Jig Ownership
 - SMT Process
 - External FR5 Input
-- UI / Command Routing
+- Workcell Status GUI
+- Camera Director / Follow
+- Unity Recorder
 
 ### Robot Interface
 
-- FR5 SDK 연결 구조
-- Read-only Feedback
-- ROS2 Command Publisher / Listener
-- Command Status
-- Simulation / Actual Robot Mode Separation
+- FR5 SDK Integration architecture
+- Read-only Feedback 우선
+- ROS2 legacy Command Publisher / Listener
+- Backend Status
+- Runtime Source separation
 
-## 구현 범위에서 제외하거나 보수적으로 유지한 부분
+## 의도적으로 제외 / 보수적 유지
 
-- Slot08은 최상단 간섭 위험으로 최종 운영 범위에서 제외
-- Unity는 Gazebo를 대체하는 Robot Physics Simulator로 사용하지 않음
-- Simulation PASS를 Actual FR5 Hardware PASS로 표현하지 않음
-- 실제 장비 Safety/Speed는 최종 Hardware Validation 전 확정하지 않음
+- TAKE8 / Slot08 Jig는 운영 제외
+- Unity를 Robot Physics Simulator로 사용하지 않음
+- Simulation PASS를 Actual FR5 PASS로 표현하지 않음
+- 실제 Speed/Safety는 Hardware 검증 전 확정하지 않음
+- `RUN_TAKE`를 Backend 미구현 상태에서 실행 완료 기능처럼 표시하지 않음
+- Camera framing은 실제 동작 촬영 전에 최종 조정
 
-## 남은 연동
+## 주요 해결 문제
 
-- Unity SMT 공통 선속도 / Finish Straight Insert 최종 Play Mode 시각 검증
-- Unity ↔ ROS2 ↔ Actual FR5 End-to-End 검증
-- 실제 FR5 Motion/Feedback 최종 검증
-- 대표 이미지 / 검증 영상 추가
+| 문제 | 해결 |
+|:---|:---|
+| 높은 Slot 접근 간섭 | PREGRASP + Cartesian Approach |
+| Wrist Branch 전환 | Negative-J6 Guard |
+| Gazebo / MoveIt 좌표 차이 | Planning Scene 변환 |
+| Carry Jig 불연속 | LIVE TF rigid follower |
+| Jig 중복 표시 | Ownership State |
+| SMT 속도 불일치 | 공통 World-space speed |
+| Finish 회전 | Rotation 유지 Straight Insert |
+| Laptop RTF 저하 | true headless |
+| Camera 중복 출력 | Camera Director |
+| UI STOP 중복 | single listener |
 
-Unity의 마지막 공정 보정은 코드와 정적 검증까지 완료했으며, 큰 구조나 Motion Policy를 다시 설계하는 단계는 종료했습니다. 현재는 시각 검증과 실제 장비 종단 연동을 마무리하는 단계입니다.
+## 현재 남은 통합
+
+```mermaid
+flowchart LR
+    A["Unity Recorder<br/>Sample MP4"] --> B["ROS2 ↔ Unity<br/>Live JointState"]
+    B --> C["Final Camera<br/>Framing / Shoot"]
+    C --> D["RUN_TAKE<br/>Backend Integration"]
+    D --> E["Actual FR5<br/>Hardware Validation"]
+```
+
+큰 구조나 검증된 Motion을 다시 설계하는 단계는 종료했고, 현재는 Integration과 최종 촬영 단계입니다.
 
 ---
 
-[문서 목차](README.md) · [프로젝트 README](../README.md)
+[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)

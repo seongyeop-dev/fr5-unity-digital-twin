@@ -1,172 +1,185 @@
-# 09. Unity Digital Twin 상세
+<a id="top"></a>
 
-## Unity의 역할
+# 09. Unity Digital Twin
 
-Unity는 Robot Motion Planner나 물리 시뮬레이터를 대체하지 않습니다. ROS2/Gazebo에서 검증한 상태와 이벤트를 사용자가 확인할 수 있도록 표현하고, Workcell 공정과 UI를 구성하는 Digital Twin 계층으로 사용했습니다.
+> Unity는 Motion Planner가 아니라 **Robot State·Workcell Process·GUI·Camera를 통합해 보여주는 Digital Twin 계층**입니다.
 
-주요 범위는 다음과 같습니다.
+[문서 목차](README.md) · [프로젝트 README](../README.md) · [Camera & Recording](16_unity_camera_and_recording.md)
+
+## Unity 역할
 
 - FR5 Joint Runtime Sync
-- Robot / Table / Workcell 시각 구성
-- Source / Finish Magazine 상태
+- Runtime Source ownership
+- Robot / Workcell visualization
+- Source / Finish Magazine
 - Jig Visual Ownership
-- Conveyor / SMT Process Sequence
-- External FR5 Input
-- UI Command Routing
+- SMT Process
+- Operator GUI
+- Workcell Status
+- Portfolio Camera / Recording
 
-## FR5 Joint Runtime Sync
+## Runtime Source Ownership
 
-ROS2 `/joint_states`는 Unity에서 바로 Transform에 임의 적용하지 않고 역할을 분리했습니다.
-
-```text
-/joint_states
-  ↓
-scr_FR5Ros2JointStateClient
-  ↓
-scr_FR5RuntimeSyncManager
-  ↓
-scr_VirtualJointController
-  ↓
-FR5 J1~J6 Transform
+```mermaid
+flowchart TB
+    R["ROS2 JointState"] --> M["RuntimeSyncManager"]
+    S["SDK Feedback"] -.-> M
+    T["Manual / Replay"] -.-> M
+    M --> V["VirtualJointController"]
+    V --> J["FR5 J1~J6"]
 ```
 
-`Manual/Test`와 `External Feedback`을 구분해 실제 Robot Feedback과 Unity 내부 테스트 입력이 동시에 Joint를 소유하지 않도록 구성했습니다.
+한 번에 하나의 Source만 Joint Transform을 소유하도록 합니다.
 
-## Edit Mode 기준과 Runtime 상태
+## Edit Mode / Runtime 분리
 
-Scene의 정적 배치와 Play Mode 동작을 분리해 관리합니다.
+| Edit Mode 기준 | Runtime 상태 |
+|:---|:---|
+| Robot / Table Transform | Joint Feedback |
+| Equipment layout | Jig Ownership |
+| Slot 기준 | Conveyor movement |
+| Material / Prefab | Process phase |
+| Camera 기본 Transform | Camera switching |
+| UI hierarchy | Status text |
 
-정적 기준:
-
-- Robot / Table Transform
-- Magazine / Conveyor / SMT 설비 배치
-- Material / Prefab 기준
-- Source / Finish Slot 기준
-
-Runtime 상태:
-
-- Joint Feedback
-- Jig Ownership
-- Conveyor 이동
-- Equipment Process
-- UI 상태
-
-No-Save Editor Validation을 사용해 Scene을 저장하지 않고도 Source/Finish 상태와 보호 대상을 확인할 수 있도록 했습니다.
+No-Save Editor Utility와 Read-only Audit을 사용해 Runtime 검증이 기준 Scene을 임의 변경하지 않게 했습니다.
 
 ## Source Magazine
 
-최종 Source Magazine 정책은 다음과 같습니다.
-
 ```text
-Slot01~07 = Jig 존재
+Slot01~07 = Jig
 Slot08    = EMPTY
 ```
 
-Slot08은 ROS2/Gazebo 최종 운영 범위에서도 사용하지 않기 때문에 Unity에서도 공급 대상으로 만들지 않습니다.
+Slot08은 Source supply 대상이 아닙니다.
 
-Source Magazine에서 Jig가 Pick되면 단순히 같은 Visual을 복제해 여러 곳에 표시하지 않고 Ownership을 전환합니다.
+## Jig Ownership
 
-## Jig Visual Ownership
-
-한 개의 생산 Jig가 여러 위치에 동시에 나타나는 문제를 막기 위해 상태를 구분했습니다.
-
-```text
-Source Slot Visual
-      ↓ PICK_DONE
-Carried Jig
-      ↓ PLACE_DONE
-Runtime SMT Jig
-      ↓ Finish Handoff
-Finish Slot Visual
+```mermaid
+stateDiagram-v2
+    [*] --> Source
+    Source --> Carried: PICK_DONE
+    Carried --> Runtime: PLACE_DONE
+    Runtime --> Finish: Handoff
+    Finish --> [*]
 ```
 
-각 상태는 이전 Visual을 비활성화하거나 소유권을 넘긴 뒤 다음 Visual을 활성화하는 방식으로 전환됩니다.
+한 시점에 하나의 Owner만 Jig를 표현합니다.
 
 ## SMT Process
 
-Unity 공정 흐름은 다음 순서로 구성했습니다.
-
-```text
-FR5 Place
-  ↓
-EQ_Conveyor_01
-  ↓
-Mounter
-  ↓
-Inspection
-  ↓
-EQ_Conveyor_02
-  ↓
-Unloader
-  ↓
-Finish Magazine
+```mermaid
+flowchart LR
+    P["FR5 Place"] --> C1["Conveyor 01"]
+    C1 --> M["Mounter"]
+    M --> I["Inspection"]
+    I --> C2["Conveyor 02"]
+    C2 --> U["Unloader"]
+    U --> F["Finish Magazine"]
 ```
 
-공정 대기시간과 Jig의 Translation은 분리합니다. Mounter/Inspection dwell과 이동 속도를 같은 duration 값으로 처리하지 않습니다.
-
-### 공통 Jig Transfer Speed
-
-마지막 Unity 보정에서는 구간별 fixed duration과 SmoothStep에 의해 실제 선속도가 달라지는 문제를 정리했습니다.
+### 공통 Transfer Speed
 
 ```text
-common linear speed = 0.15 m/s
+speed = 0.15 m/s
 duration = world_distance / speed
 ```
 
-정상 Jig Translation 구간은 동일한 World-space 선속도 기준을 사용하며, Process Dwell과 Lift Timing은 유지합니다. 이 변경은 Static Compile과 Offline Contract까지 완료했고 최종 Play Mode 시각 검증을 남겨두고 있습니다.
+Process dwell과 Translation을 분리합니다.
 
-## Finish Magazine Straight Insert
+### Finish Straight Insert
 
-Finish Magazine에 들어가기 직전 Jig가 Slot Rotation으로 회전하는 현상을 제거하기 위해 Unloader 출력 시점의 World Rotation을 기준으로 유지합니다.
-
-```text
-Unloader End
-→ insertionRotation 저장
-→ Slot Height Alignment
-→ Horizontal Approach
-→ Straight Insert
-→ Runtime Jig Hide
-→ Filled Slot Handoff
-```
-
-Finish Slot Transform은 위치/높이 기준으로 사용하고, Jig Trajectory의 Rotation Target으로 사용하지 않습니다.
-
-Rotation 검증 기준은 다음과 같습니다.
+Unloader 출력 시 Jig world rotation을 저장하고 Height Alignment / Approach / Insert 동안 유지합니다.
 
 ```text
-Quaternion.Angle(
-    insertionStartRotation,
-    insertionEndRotation
-) <= 0.01°
+Quaternion.Angle(startRotation, endRotation) <= 0.01°
 ```
 
-## Source / Finish Editor Setup
+Static/Offline 검증은 완료했고 최종 공정 시각 검증은 촬영 단계에서 다시 확인합니다.
 
-`FR5SourceFinishSetup.cs`는 Source 7 + Slot08 EMPTY와 Finish Placeholder 상태를 No-Save 방식으로 구성/검증합니다. 보호 Transform이 변경되면 중단/Undo하도록 구성해 Robot/Table/설비 기준을 같이 변경하지 않도록 했습니다.
+## Workcell Status GUI
 
-현재 Finish Placeholder 방향 보정은 코드에 반영되어 있으나, 실제 메뉴 적용과 Play Mode 결과는 사용자가 최종 확인한 뒤 Scene 기준으로 확정합니다.
+Runtime Panel에 Process / Phase / Source / Finish 요약을 0.2초 throttle/cache 구조로 표시합니다.
 
-## External FR5 Input
+표시 예:
 
-Unity 단독 Offline Process와 외부 FR5 입력을 분리합니다. External Mode에서는 기존 Unity Legacy Owner가 같은 Jig를 동시에 움직이지 않도록 비활성화하고, 외부 Place/Release 이벤트 이후 SMT Process가 이어지도록 구성했습니다.
+```text
+공정 실행 중 / 단계 슬롯 삽입
+완료 2 / 최근 공급 03
+적재 4 / 대상 10
+```
+
+기술명 `FR5`, `ROS2`, `SDK`, `TCP`는 영문으로 유지하고 사용자 동작/상태 문구만 한국어 중심으로 정리합니다.
+
+## UI Button Audit
+
+Read-only Live Scene Audit 기준:
+
+| 항목 | 결과 |
+|:---|---:|
+| Button | 96 |
+| 1 persistent listener | 85 |
+| 0 persistent listener | 9 |
+| 2 persistent listeners | 2 |
+| Missing Target | 0 |
+| Missing Method | 0 |
+| Missing Script | 0 |
+| STOP listener | 1 |
+
+Runtime `AddListener`는 Edit Mode Persistent UnityEvent와 별도로 추적합니다.
+
+## Portfolio Camera
+
+기존 RenderTexture Camera를 보존하면서 Game View shot Camera를 분리했습니다.
+
+```text
+Main
++ Process Camera 01~07
++ Top Overview
++ FR5 Close-up
++ Cinematic Follow
+```
+
+Game View output과 AudioListener는 각각 하나만 활성화합니다.
+
+Camera 전환:
+
+```text
+1~7 Process
+8 Top
+9 Close-up
+0 Follow
+` Main
+```
+
+Play Mode에서 switching 자체는 확인했습니다.
+
+## Unity Recorder
+
+- `com.unity.recorder@5.1.7`
+- FHD 1080p
+- 16:9
+- H.264 MP4
+- High
+- 30 FPS
+- Audio OFF
+- `Project/Recordings`
+
+Recorder는 Unity clean B-roll 용도로 사용하며 Gazebo/RViz/Unity 동시 화면은 외부 capture와 역할을 분리합니다.
 
 ## 현재 검증 경계
 
-완료:
-
-- Source Slot01~07 / Slot08 EMPTY 구조
-- Source / Carried / Runtime / Finish Ownership
-- External FR5 Input 구조
-- 공통 0.15 m/s Transfer 코드/정적 검증
-- Finish Rotation Drift 코드/정적 검증
-
-최종 확인 예정:
-
-- Play Mode에서 모든 SMT 구간의 시각적 동일 속도
-- Unloader → Finish 무회전 직선 삽입
-- Runtime Jig → Filled Slot Handoff 순간 Visual Snap 여부
-- Unity ↔ ROS2 ↔ 실제 FR5 종단 연동
+| 항목 | 상태 |
+|:---|:---:|
+| Camera switching | PASS |
+| AudioListener 1 | PASS |
+| STOP listener 1 | PASS |
+| Workcell Text binding | PASS |
+| Recorder 설치/설정 | PASS |
+| MP4 sample | PENDING |
+| ROS2 live JointState E2E | PENDING |
+| Actual FR5 SDK E2E | PENDING |
 
 ---
 
-[문서 목차](README.md) · [05. Validation](05_validation.md) · [프로젝트 README](../README.md)
+[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)

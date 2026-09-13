@@ -1,139 +1,158 @@
+<a id="top"></a>
+
 # 04. 데이터 흐름
 
-## 전체 Runtime 흐름
+> Robot State, UI Command, Jig Ownership, Process Event가 서로 다른 흐름을 가지도록 분리했습니다.
 
-```text
-Robot / Simulator
-      ↓
-ROS2 State / Event
-      ↓
-Unity Runtime
-      ↓
-Robot View / Workcell / UI
+[문서 목차](README.md) · [프로젝트 README](../README.md) · [Architecture](02_architecture.md)
+
+## 데이터 흐름 요약
+
+| 흐름 | Source | Destination | 상태 |
+|:---|:---|:---|:---:|
+| Joint Feedback | Gazebo / FR5 | Unity J1~J6 | IMPLEMENTED (Simulation path) |
+| Unity Command | UI | ROS2 Listener | IMPLEMENTED (legacy command) |
+| Command Status | ROS2 Backend | Unity | IMPLEMENTED (publisher) / TAKE correlation PENDING |
+| Jig Ownership | Source / FR5 / SMT | Finish | IMPLEMENTED |
+| Camera | Camera Director | Game View / Recorder | IMPLEMENTED |
+| RUN_TAKE | Unity Slot | Final Master | PENDING |
+
+## JointState Flow
+
+```mermaid
+sequenceDiagram
+    participant G as Gazebo / FR5
+    participant R as ROS2
+    participant C as JointStateClient
+    participant S as RuntimeSyncManager
+    participant V as VirtualJointController
+
+    G->>R: Joint state
+    R->>C: /joint_states
+    C->>S: J1~J6 mapped values
+    S->>V: selected runtime source
+    V->>V: Local Rotation update
 ```
 
-## Joint State 흐름
+Joint name을 기준으로 J1~J6를 추출하고 ROS radian을 Unity Joint 기준에 맞춰 적용합니다.
 
-```text
-Gazebo 또는 FR5 Feedback
-        ↓
-     /joint_states
-        ↓
-scr_FR5Ros2JointStateClient
-        ↓
-scr_FR5RuntimeSyncManager
-        ↓
-scr_VirtualJointController
-        ↓
-Unity FR5 J1~J6
+## Unity Command / Status Flow
+
+```mermaid
+sequenceDiagram
+    participant UI as Unity UI
+    participant Router as UICommandRouter
+    participant Pub as ROS2CommandPublisher
+    participant L as Ubuntu Listener
+    participant Ctrl as Gazebo / Controller
+    participant Stat as Command Status
+
+    UI->>Router: user action
+    Router->>Pub: normalized command
+    Pub->>L: /fr5/unity_command JSON
+    L->>Ctrl: legacy command dispatch
+    L-->>Stat: /fr5/command_status JSON
 ```
 
-Joint Name을 기준으로 J1~J6 값을 추출하고 ROS radian 값을 Unity Joint 기준으로 변환한 뒤 Local Rotation에 적용합니다.
+현재 Listener는 기존 MOVE_J / HOME / RESET / STOP / Gripper 명령을 처리합니다. `RUN_TAKE`는 아직 연결되지 않았습니다.
 
-## Unity Command 흐름
+## TAKE Flow: 현재와 목표
 
-```text
-Unity UI
-   ↓
-scr_FR5UICommandRouter
-   ↓
-scr_FR5Ros2CommandPublisher
-   ↓
-/fr5/unity_command [std_msgs/msg/String, JSON]
-   ↓
-fr5_unity_command_listener
-   ↓
-Gazebo / controller [기존 명령]
+현재:
 
-Backend Status Publisher [구현됨]
-   → /fr5/command_status [std_msgs/msg/String, JSON]
-   → Unity Status Subscriber / TAKE correlation [Pending]
+```mermaid
+flowchart LR
+    SLOT["Unity Slot UI"] --> SEL["TAKE selection / mapping"]
+    SEL --> STOP["enableTakeDispatch = false"]
 ```
 
-UI와 Robot 실행 로직을 직접 연결하지 않고 Command Router와 ROS2 Publisher를 사이에 두었습니다.
+목표:
 
-현재 Listener는 기존 MOVE_J / HOME / RESET / STOP / Gripper 명령을 처리합니다. Master에는 `FR5_TAKE=1`~`7` / `ALL` selector가 있지만 `RUN_TAKE` dispatch는 미구현입니다. 따라서 Slot 선택을 실제 TAKE 전송·완료로 표시하지 않으며, 이 경로를 실제 FR5 Hardware 실행 완료로 해석하지 않습니다. [Backend 계약과 인계 기준](14_deployment_and_handoff.md)을 참고합니다.
+```mermaid
+sequenceDiagram
+    participant U as Unity
+    participant L as ROS2 Listener
+    participant M as Final Master
+    participant S as Status
 
-## MoveIt / Gazebo Motion 흐름
-
-```text
-Current Joint State
-       ↓
-Slot Configuration
-       ↓
-Planning Scene Check
-       ↓
-Joint / Cartesian Planning
-       ↓
-Trajectory Validation
-       ↓
-Execute
-       ↓
-Gazebo FR5 Motion
-       ↓
-Jig Rigid Follower
+    U->>L: RUN_TAKE + request_id
+    L->>M: FR5_TAKE=1..7 / ALL
+    M-->>L: BUSY / COMPLETE / FAILED
+    L-->>S: correlated status
+    S-->>U: request completion
 ```
 
-Slot별 Configuration은 Python Master와 YAML 설정으로 분리해 관리합니다.
+위 목표 계약은 아직 구현 완료 상태가 아닙니다.
 
-## Jig Ownership 흐름
+## MoveIt / Gazebo Motion Flow
 
-```text
-Source Jig
-   │ PICK_DONE
-   ▼
-Carried Jig
-   │ PLACE_DONE
-   ▼
-SMT Runtime Jig
-   │ Finish Complete
-   ▼
-Finish Jig
+```mermaid
+flowchart TB
+    JS["Current Joint State"] --> CFG["Slot Configuration"]
+    CFG --> PS["Planning Scene"]
+    PS --> PLAN["Joint / Cartesian Plan"]
+    PLAN --> GUARD["Negative-J6 Guard"]
+    GUARD --> EXEC["Execute"]
+    EXEC --> GZ["Gazebo Motion"]
+    GZ --> JIG["LIVE TF Jig Follower"]
 ```
 
-이벤트가 발생할 때 위치만 옮기는 것이 아니라 현재 Jig Visual의 소유 상태를 함께 변경합니다.
+## Jig Ownership Flow
 
-## Unity SMT Process 흐름
-
-```text
-PLACE_DONE / External FR5 Input
-          ↓
-    EQ_Conveyor_01
-          ↓
-       Mounter
-          ↓
-      Inspection
-          ↓
-    EQ_Conveyor_02
-          ↓
-       Unloader
-          ↓
-   Finish Magazine
+```mermaid
+stateDiagram-v2
+    [*] --> Source
+    Source --> Carried: PICK_DONE
+    Carried --> Runtime: PLACE_DONE
+    Runtime --> Finish: Process Complete
+    Finish --> [*]
 ```
 
-Process Controller는 Jig Transfer와 Process Dwell을 구분해 관리합니다.
+위치는 물론 현재 visual owner 자체를 바꿔 동일 Jig가 여러 위치에 동시에 보이지 않게 합니다.
 
-## Simulation / Actual Feedback 흐름
+## SMT Process Flow
 
-Simulation:
+```mermaid
+sequenceDiagram
+    participant F as FR5 / External Input
+    participant C1 as Conveyor01
+    participant M as Mounter
+    participant I as Inspection
+    participant C2 as Conveyor02
+    participant U as Unloader
+    participant FM as Finish Magazine
 
-```text
-Gazebo / MoveIt2
-→ ROS2
-→ Unity
+    F->>C1: PLACE_DONE
+    C1->>M: Transfer
+    M->>I: Dwell complete
+    I->>C2: Transfer
+    C2->>U: Transfer
+    U->>FM: Straight insert / handoff
 ```
 
-Actual Robot:
+## Camera / Recording Flow
 
-```text
-FR5
-→ FR5 SDK
-→ Bridge / ROS2
-→ Unity
+```mermaid
+flowchart LR
+    K["Keyboard / Camera UI"] --> D["PortfolioCameraDirector"]
+    D --> C["Selected Shot Camera"]
+    C --> G["Single Game View"]
+    G --> R["Unity Recorder"]
+    R --> MP4["Project/Recordings/*.mp4"]
 ```
 
-두 경로가 같은 Unity Runtime으로 들어오더라도 입력 모드를 분리해 Test Value와 External Feedback이 동시에 적용되지 않도록 구성했습니다.
+RenderTexture Camera는 기존 UI 용도로 계속 유지합니다.
+
+## Simulation / Actual Feedback
+
+```mermaid
+flowchart TB
+    G["Gazebo / MoveIt2"] --> R["ROS2"] --> U["Unity"]
+    F["Actual FR5"] -.-> S["FR5 SDK"] -.-> U
+```
+
+두 입력이 동시에 Unity Joints를 소유하지 않도록 Runtime Source ownership을 유지합니다.
 
 ---
 
-[문서 목차](README.md) · [프로젝트 README](../README.md)
+[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
