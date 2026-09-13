@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.db-journal
+*.db-shm
+*.db-wal
+*.tmp
+*.bak
+*.log
+original-media/

@@ -42,6 +42,15 @@
 | [15. Laptop ROS2 Simulation Runtime](15_laptop_ros2_simulation_runtime.md) | fresh build, headless, RTF, Final TAKE 재검증 |
 | [16. Unity Camera & Recording](16_unity_camera_and_recording.md) | 10-shot Camera, Follow, Recorder, UI Button Audit |
 
+## 중간 시연 / 보존 Snapshot
+
+| 자료 | 목적 |
+|:---|:---|
+| [FR5 Demo Archive](../demos/README.md) | SDK 교육 → 중간 시연 → Digital Twin 발전 흐름 |
+| [FR5 Cocktail Robot Demo Snapshot](../demos/01_fr5_sdk_cocktail_robot_demo/README.md) | 기존 독립 Demo의 원본 README / source / media / docs |
+
+Cocktail Demo Snapshot 내부 파일은 현재 Digital Twin 문서 스타일에 맞추기 위해 재작성하지 않고 원본 상태로 보존합니다.
+
 ## 검증 상태 표기
 
 | 상태 | 의미 |

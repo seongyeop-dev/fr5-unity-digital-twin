@@ -33,6 +33,20 @@ flowchart LR
     F --> G["FR5 SDK Interface"]
 ```
 
+## 개발 단계의 발전
+
+현재 구조는 단순 Unity 시각화에서 바로 시작한 것이 아닙니다. FR5 SDK 교육에서 실제 Robot Control을 경험한 뒤, Cocktail Robot Demo를 중간 시연으로 만들고 그 제어 경험을 Digital Twin 구조로 확장했습니다.
+
+| 단계 | 핵심 경험 |
+|:---|:---|
+| FR5 SDK 교육 | Robot / Gripper Interface와 기본 제어 구조 |
+| Cocktail Robot Demo | 메뉴 1·2 제조, Pick & Place 실제 시연 |
+| Unity Digital Twin | Joint Runtime Sync, GUI, 공정 상태 표현 |
+| ROS2 / Gazebo / MoveIt2 | Workcell Physics, Planning Scene, Motion Planning |
+| Laptop Runtime | Final TAKE1~TAKE7 재현성과 Integration 준비 |
+
+Cocktail Demo 원본 내용은 [`../demos/01_fr5_sdk_cocktail_robot_demo/`](../demos/01_fr5_sdk_cocktail_robot_demo/)에 수정 없이 보존했습니다.
+
 ## 개발 목표
 
 - FR5 J1~J6 상태를 Unity Digital Twin에 실시간 반영

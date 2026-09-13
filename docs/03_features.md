@@ -32,6 +32,22 @@
 | SDK | Read-only Feedback 구조 | IMPLEMENTED |
 | Actual FR5 | Hardware E2E | PENDING |
 
+## FR5 SDK 중간 시연 데모
+
+Digital Twin 이전 단계에서 FR5 SDK 교육을 기반으로 실제 Robot Control Demo를 구성했습니다.
+
+| 시연 | 보존 근거 |
+|:---|:---|
+| 메뉴 1 칵테일 제조 | Demo 문서 / 이미지 / MP4 |
+| 메뉴 2 칵테일 제조 | Demo 문서 / 이미지 / MP4 |
+| Pick & Place | Demo 문서 / 이미지 / MP4 |
+| 제어 Source | Lua script |
+| Position / Reference | Point DB / DIO reference |
+
+이 단계의 목적은 현재 Digital Twin 기능을 중복 설명하는 것이 아니라, **SDK 기반 실제 Robot Control 경험이 이후 ROS2·Gazebo·MoveIt2·Unity 구조로 확장됐음을 보여주는 것**입니다.
+
+원본 Snapshot: [`demos/01_fr5_sdk_cocktail_robot_demo`](../demos/01_fr5_sdk_cocktail_robot_demo/)
+
 ## ROS2 / Gazebo / MoveIt2
 
 ### Gazebo Workcell

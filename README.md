@@ -4,7 +4,7 @@
 
 > **ROS2 · Gazebo · MoveIt2 · Unity를 분리된 책임 계층으로 연결하고, FAIRINO FR5의 Pick & Place·Workcell·공정 상태를 Simulation에서 검증한 뒤 실제 Robot 연동까지 확장하는 개인 디지털 트윈 프로젝트입니다.**
 
-[문서 목차](docs/README.md) · [Architecture](docs/02_architecture.md) · [Validation](docs/05_validation.md) · [Unity](docs/09_unity_digital_twin.md) · [Laptop Runtime](docs/15_laptop_ros2_simulation_runtime.md)
+[문서 목차](docs/README.md) · [Architecture](docs/02_architecture.md) · [Validation](docs/05_validation.md) · [Unity](docs/09_unity_digital_twin.md) · [Laptop Runtime](docs/15_laptop_ros2_simulation_runtime.md) · [SDK Demo](demos/README.md)
 
 ## 프로젝트 한눈에 보기
 
@@ -39,6 +39,31 @@
 | UI Button Audit | 96개 Button Read-only Audit, Missing Target/Method/Script 0 |
 | STOP UI | 중복 listener 제거 후 단일 STOP entry point 확인 |
 | Workcell GUI | Runtime 상태 Text binding 및 한국어 표시 구조 연결 |
+
+## 개발 발전 과정
+
+현재 Digital Twin은 처음부터 Simulation 중심으로 시작한 것이 아니라, **FR5 SDK 교육과 실제 Robot Control 시연을 거쳐 확장**했습니다.
+
+```mermaid
+flowchart LR
+    A["FR5 SDK 교육<br/>Robot Control Basics"]
+    B["Cocktail Robot Demo<br/>Menu 1 / Menu 2 / Pick & Place"]
+    C["Unity Digital Twin<br/>Joint Sync / GUI / Process"]
+    D["ROS2 + Gazebo + MoveIt2<br/>Workcell / Planning / Collision"]
+    E["Laptop ROS2 ↔ Unity<br/>Integration / Portfolio"]
+
+    A --> B --> C --> D --> E
+```
+
+| 단계 | 의미 |
+|:---|:---|
+| FR5 SDK 교육 | 실제 Robot Interface와 기본 제어 구조 학습 |
+| Cocktail Robot Demo | FR5 SDK 기반 메뉴 제조와 Pick & Place 실제 시연 |
+| Unity Digital Twin | Robot 상태, UI, 공정 시각화 계층 확장 |
+| ROS2 / Gazebo / MoveIt2 | Motion Planning, Collision, Workcell Simulation 분리 |
+| Final Integration | Laptop Simulation Runtime과 Windows Unity를 연결해 동시 검증 |
+
+기존 `fr5_cocktail_robot_demo`의 내용은 수정하지 않고 [`demos/01_fr5_sdk_cocktail_robot_demo/`](demos/01_fr5_sdk_cocktail_robot_demo/)에 Snapshot으로 보존했습니다. Source 기준은 `main` @ `6dffa7995c9c68969b9d2b721ce952511422514c`이며, 이관 시 tracked file 31개를 SHA256으로 1:1 검증했습니다.
 
 ## 전체 시스템 아키텍처
 
@@ -270,6 +295,7 @@ Final Motion Master SHA256:
 | [14. Deployment & Laptop Handoff](docs/14_deployment_and_handoff.md) | Source of Truth, 배포, Hardware 경계 |
 | [15. Laptop ROS2 Simulation Runtime](docs/15_laptop_ros2_simulation_runtime.md) | 노트북 Runtime / headless / RTF / Final TAKE |
 | [16. Unity Camera & Recording](docs/16_unity_camera_and_recording.md) | Portfolio Camera, Recorder, UI Audit |
+| [FR5 SDK Cocktail Demo Snapshot](demos/README.md) | SDK 교육 기반 중간 시연과 원본 Snapshot |
 
 ## 현재 남은 작업
 

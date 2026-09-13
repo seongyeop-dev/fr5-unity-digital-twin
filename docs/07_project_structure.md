@@ -33,6 +33,31 @@ FAIRINO_FR5_DigitalTwin/
 └─ ProjectSettings/
 ```
 
+## 보존된 SDK 중간 시연
+
+Digital Twin 저장소 안에는 이전 FR5 SDK 중간 시연을 별도 Snapshot으로 보존합니다.
+
+```text
+demos/
+├─ README.md
+└─ 01_fr5_sdk_cocktail_robot_demo/
+   ├─ README.md
+   ├─ archive/
+   ├─ data/
+   ├─ docs/
+   ├─ media/
+   ├─ references/
+   └─ src/
+```
+
+- Source 기준: `main` @ `6dffa7995c9c68969b9d2b721ce952511422514c`
+- Source tracked file: 31개
+- Snapshot 내부 파일: 수정 없음
+- Migration 검증: Source ↔ Target SHA256 31/31 일치
+- `.git`은 중첩 저장소 방지를 위해 포함하지 않음
+
+Snapshot 내부의 기존 `.gitattributes`, `.gitignore`, README, docs, source, media는 원본 내용을 유지합니다.
+
 ## ROS2 핵심 파일
 
 | Path | 역할 |

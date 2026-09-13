@@ -1,0 +1,88 @@
+PTP(team_pHome,30,30,0)
+ActGripper(1,1)
+while (1) do 
+loop1 = 0 
+loop2 = 0 
+while (loop2 < 1) do
+    if (GetDI(0,0) == 1) then
+        loop1 = 1
+        loop2 = loop2 + 1
+    elseif (GetDI(1,0) == 1) then
+        loop1 = 2
+        loop2 = loop2 + 1
+    end
+end
+PTP(team_grip_origin,30,30,2,0,-150,-30,0,0,0)
+PTP(team_grip_origin,5,30,2,0,0,-30,0,0,0)
+PTP(team_grip_origin,5,30,0)
+MoveGripper(1,69,30,30,2000,0,0,0,0,0)
+PTP(team_grip_origin,30,30,2,0,-70,0,0,0,0)
+PTP(team_fountain,20,30,0)
+if (loop1 == 1) then
+Lin(team_fountain_1,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_1,10,-1,0,0,0,100,200)
+WaitMs(1000)
+Lin(team_fountain_1,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_2,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_2,10,-1,0,0,0,100,200)
+WaitMs(1000)
+Lin(team_fountain_2,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_3,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_3,10,-1,0,0,0,100,200)
+WaitMs(1000)
+Lin(team_fountain_3,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+elseif (loop1 == 2) then
+Lin(team_fountain_4,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_4,10,-1,0,0,0,100,200)
+WaitMs(1000)
+Lin(team_fountain_4,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_5,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_5,10,-1,0,0,0,100,200)
+WaitMs(1000)
+Lin(team_fountain_5,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_6,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+Lin(team_fountain_6,10,-1,0,0,0,100,200)
+WaitMs(1000)
+Lin(team_fountain_6,10,-1,0,2,0,0,-50,0,0,0,0,100,200)
+end
+PTP(team_fountain,10,30,0)
+PTP(team_grip_origin,10,30,2,0,-150,0,0,0,0)
+Lin(team_grip_origin,10,-1,0,0,0,100,200)
+MoveGripper(1,100,30,30,2000,0,0,0,0,0)
+PTP(team_grip_origin,20,30,2,0,0,-30,0,0,0)
+PTP(team_grip_origin,20,30,2,0,-150,-30,0,0,0)
+PTP(team_glue_grip,30,30,2,0,0,-100,0,0,0)
+Lin(team_glue_grip,5,-1,0,0,0,100,200)
+MoveGripper(1,72,30,30,2000,0,0,0,0,0)
+PTP(team_glue_grip,10,30,2,0,0,-150,0,0,0)
+PTP(team_glue_top,10,100,2,0,0,-150,0,0,0)
+Lin(team_glue_top,5,-1,0,0,0,100,200)
+MoveGripper(1,100,30,30,2000,0,0,0,0,0)
+PTP(team_glue_top,10,100,2,0,0,-100,0,0,0)
+PTP(team_grip_origin,30,30,2,0,-150,-30,0,0,0)
+PTP(team_grip_origin,10,30,2,0,0,-30,0,0,0)
+PTP(team_grip_origin,10,30,2,0,0,0,0,0,0)
+MoveGripper(1,71,30,30,2000,0,0,0,0,0)
+PTP(team_grip_origin,10,30,2,0,-150,0,0,0,0)
+PTP(team_shake_0_bottom,30,30,0)
+Spiral(team_shake_0_top,team_shake_0_origin,team_shake_0_bottom,50,0,0,0,0,0,0,0,5,0,0,0,10,10)
+PTP(team_shake_1_bottom,30,30,0)
+Spiral(team_shake_1_top,team_shake_1_origin,team_shake_1_bottom,50,0,0,0,0,0,0,0,5,0,0,0,10,10)
+PTP(team_shake_2_bottom,30,30,0)
+Spiral(team_shake_2_top,team_shake_2_origin,team_shake_2_bottom,50,0,0,0,0,0,0,0,5,0,0,0,1,1)
+PTP(team_grip_origin,30,30,2,0,-150,-30,0,0,0)
+PTP(team_grip_origin,30,30,2,0,-70,0,0,0,0)
+PTP(team_grip_origin,10,30,2,0,0,0,0,0,0)
+MoveGripper(1,100,30,30,2000,0,0,0,0,0)
+PTP(team_grip_origin,10,30,2,0,0,-30,0,0,0)
+PTP(team_grip_origin,10,30,2,0,-150,-30,0,0,0)
+PTP(team_glue_top,10,100,2,0,0,-150,0,0,0)
+PTP(team_glue_top,5,100,2,0,0,0,0,0,0)
+MoveGripper(1,72,30,30,2000,0,0,0,0,0)
+PTP(team_glue_top,30,100,2,0,0,-150,0,0,0)
+PTP(team_glue_grip,30,30,2,0,0,-100,0,0,0)
+PTP(team_glue_grip,30,30,2,0,0,0,0,0,0)
+MoveGripper(1,100,30,30,2000,0,0,0,0,0)
+PTP(team_glue_grip,30,30,2,0,0,-100,0,0,0)
+PTP(team_pHome,30,30,0)
+end

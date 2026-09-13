@@ -25,6 +25,7 @@
 | 13 | Camera 다중 출력 | Camera Director |
 | 14 | 촬영 자료 단조로움 | 10-shot + Recorder |
 | 15 | UI 연결 신뢰성 | Button read-only audit |
+| 16 | SDK Demo와 Digital Twin 이력 분리 | 원본 Snapshot 보존 + 상위 문서에서 발전 과정 설명 |
 
 ## 1. Slot 높이에 따른 Direct Pick 간섭
 
@@ -169,6 +170,14 @@ Simulation
 **결정**: Scene Button을 read-only로 전수 수집하고 Target / Method / listener count를 기록했습니다.
 
 **결과**: Button 96개, Missing Target/Method/Script 0, STOP listener 1. Reset 2개와 TAKE/Slot Runtime AddListener는 추가 source trace 대상으로 남겼습니다.
+
+## 16. SDK 중간 시연과 Digital Twin 통합
+
+**문제**: Cocktail Robot Demo는 FR5 SDK 교육 기반의 중요한 실제 Robot Control 이력이지만, 독립 저장소로 계속 유지하면 현재 Digital Twin과의 발전 관계가 끊겨 보이고 Portfolio repository 수도 불필요하게 증가합니다.
+
+**결정**: 기존 Demo 내부 내용은 수정하지 않고 현재 Digital Twin 저장소의 `demos/01_fr5_sdk_cocktail_robot_demo/`에 Snapshot으로 보존합니다. 설명과 맥락은 Snapshot 바깥의 `demos/README.md`와 현재 Portfolio 문서에서만 추가합니다.
+
+**결과**: `SDK 교육 → Cocktail Robot Demo → Unity Digital Twin → ROS2/Gazebo/MoveIt2`의 발전 흐름을 한 저장소에서 설명하면서도, 기존 Demo의 README·문서·소스·미디어는 원본 그대로 유지합니다.
 
 ## 최종 설계 원칙
 
