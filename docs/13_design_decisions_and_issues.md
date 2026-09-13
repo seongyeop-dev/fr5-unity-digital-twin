@@ -155,7 +155,7 @@ Simulation
 
 **결과**: 15 Camera 중 Game View output 1 / AudioListener 1.
 
-## 14. 포트폴리오 촬영 구조
+## 14. 촬영 구조
 
 **문제**: 일반 Screen Capture만으로는 Robot/Jig/공정별 clean shot을 만들기 어렵습니다.
 
