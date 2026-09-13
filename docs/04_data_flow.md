@@ -10,12 +10,12 @@
 
 | 흐름 | Source | Destination | 상태 |
 |:---|:---|:---|:---:|
-| Joint Feedback | Gazebo / FR5 | Unity J1~J6 | IMPLEMENTED (Simulation path) |
-| Unity Command | UI | ROS2 Listener | IMPLEMENTED (legacy command) |
-| Command Status | ROS2 Backend | Unity | IMPLEMENTED (publisher) / TAKE correlation PENDING |
-| Jig Ownership | Source / FR5 / SMT | Finish | IMPLEMENTED |
-| Camera | Camera Director | Game View / Recorder | IMPLEMENTED |
-| RUN_TAKE | Unity Slot | Final Master | PENDING |
+| Joint Feedback | Gazebo / FR5 | Unity J1~J6 | 시뮬레이션 경로 구성 |
+| Unity Command | UI | ROS2 Listener | 기존 명령 처리 경로 구성 |
+| Command Status | ROS2 Backend | Unity | Status Publisher 구성, TAKE 연동은 후속 단계 |
+| Jig Ownership | Source / FR5 / SMT | Finish | 상태 전환 구현 |
+| Camera | Camera Director | Game View / Recorder | 시점 전환 구현 |
+| RUN_TAKE | Unity Slot | Motion Sequence | 후속 통합 단계 |
 
 ## JointState Flow
 
@@ -72,7 +72,7 @@ flowchart LR
 sequenceDiagram
     participant U as Unity
     participant L as ROS2 Listener
-    participant M as Final Master
+    participant M as Motion Sequence
     participant S as Status
 
     U->>L: RUN_TAKE + request_id
@@ -151,7 +151,7 @@ flowchart TB
     F["Actual FR5"] -.-> S["FR5 SDK"] -.-> U
 ```
 
-두 입력이 동시에 Unity Joints를 소유하지 않도록 Runtime Source ownership을 유지합니다.
+두 입력이 동시에 Unity Joints를 소유하지 않도록 Runtime 입력 소유권을 유지합니다.
 
 ---
 

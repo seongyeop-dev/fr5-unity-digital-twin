@@ -18,7 +18,7 @@
 | `move_group.launch.py` | MoveIt2 |
 | `moveit_rviz.launch.py` | RViz visualization |
 
-### Final Master
+### 통합 모션 실행 스크립트
 
 입력:
 
@@ -53,7 +53,7 @@ src/fr5_ros2_bridge/fr5_ros2_bridge/fr5_unity_command_listener.py
 - MOVE_J / HOME / RESET / STOP / Gripper
 - `/fr5/command_status` publisher
 
-PENDING:
+후속 통합 항목:
 
 - `RUN_TAKE`
 - TAKE request_id
@@ -98,9 +98,9 @@ PENDING:
 com.unity.recorder@5.1.7
 ```
 
-Runtime Source가 아니라 Editor recording tool로 사용합니다.
+Runtime 입력 경로가 아니라 Editor recording tool로 사용합니다.
 
-## Unity Editor / Audit
+## Unity Editor / Validation
 
 | Script | 책임 |
 |:---|:---|

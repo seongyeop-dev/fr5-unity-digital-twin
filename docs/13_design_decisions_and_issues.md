@@ -24,8 +24,8 @@
 | 12 | Laptop RTF 저하 | true headless |
 | 13 | Camera 다중 출력 | Camera Director |
 | 14 | 촬영 자료 단조로움 | 10-shot + Recorder |
-| 15 | UI 연결 신뢰성 | Button read-only audit |
-| 16 | SDK Demo와 Digital Twin 이력 분리 | 원본 Snapshot 보존 + 상위 문서에서 발전 과정 설명 |
+| 15 | UI 연결 신뢰성 | Button 구조 점검 |
+| 16 | SDK Demo와 Digital Twin 통합 | 초기 SDK Demo를 하위 프로젝트로 포함해 발전 과정 연결 |
 
 ## 1. Slot 높이에 따른 Direct Pick 간섭
 
@@ -135,9 +135,9 @@ Simulation
 
 **문제**: 개발 PC build artifact를 노트북에 복사하면 재현성을 보장하기 어렵습니다.
 
-**결정**: Git lineage / SHA를 확인하고 Laptop에서 fresh build.
+**결정**: Workspace ?? / SHA를 확인하고 Laptop에서 fresh build.
 
-**결과**: Laptop Final Runtime HEAD `f02799c...`에서 Final TAKE를 재검증했습니다. 이 항목은 더 이상 “노트북 복원 Pending” 상태가 아닙니다.
+**결과**: 노트북 Ubuntu 환경에서 동일한 TAKE1~TAKE7 시뮬레이션을 다시 실행해 동작을 확인했습니다.
 
 ## 12. Laptop RTF 저하
 
@@ -169,13 +169,13 @@ Simulation
 
 **결정**: Scene Button을 read-only로 전수 수집하고 Target / Method / listener count를 기록했습니다.
 
-**결과**: Button 96개, Missing Target/Method/Script 0, STOP listener 1. Reset 2개와 TAKE/Slot Runtime AddListener는 추가 source trace 대상으로 남겼습니다.
+**결과**: Button 96개, Missing Target/Method/Script 0, STOP listener 1. Reset 2개와 TAKE/Slot Runtime AddListener는 추가 ?? ?? ?? 대상으로 남겼습니다.
 
 ## 16. SDK 중간 시연과 Digital Twin 통합
 
 **문제**: Cocktail Robot Demo는 FR5 SDK 교육 기반의 중요한 실제 Robot Control 이력이지만, 독립 저장소로 계속 유지하면 현재 Digital Twin과의 발전 관계가 끊겨 보이고 Portfolio repository 수도 불필요하게 증가합니다.
 
-**결정**: 기존 Demo 내부 내용은 수정하지 않고 현재 Digital Twin 저장소의 `demos/01_fr5_sdk_cocktail_robot_demo/`에 Snapshot으로 보존합니다. 설명과 맥락은 Snapshot 바깥의 `demos/README.md`와 현재 Portfolio 문서에서만 추가합니다.
+**결정**: FR5 SDK 기반 Cocktail Robot Demo를 `demos/` 아래 하위 프로젝트로 포함해 초기 제어 단계와 Digital Twin 확장 과정을 한 저장소에서 확인할 수 있도록 구성했습니다.
 
 **결과**: `SDK 교육 → Cocktail Robot Demo → Unity Digital Twin → ROS2/Gazebo/MoveIt2`의 발전 흐름을 한 저장소에서 설명하면서도, 기존 Demo의 README·문서·소스·미디어는 원본 그대로 유지합니다.
 
@@ -183,11 +183,11 @@ Simulation
 
 - 검증된 Pose/Take는 임의 재튜닝하지 않음
 - Robot Base / Geometry를 표현 문제 해결용으로 움직이지 않음
-- READ-ONLY audit 후 수정
+- 현재 상태를 먼저 확인한 뒤 필요한 범위만 수정
 - 한 계층이 다른 계층의 책임을 대신하지 않음
 - Jig는 한 시점에 하나의 Owner
 - Simulation / Unity / Hardware PASS 분리
-- 실패 경로보다 Final PASS 기준을 Source of Truth로 유지
+- 실패 경로보다 Final PASS 기준을 기준 구성로 유지
 - Runtime performance 문제와 Motion 문제를 분리
 - Portfolio presentation도 실제 검증 범위를 넘겨 과장하지 않음
 

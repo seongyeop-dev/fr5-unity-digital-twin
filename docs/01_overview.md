@@ -13,7 +13,7 @@
 | 문제 | Robot Motion, Physics, UI, 공정 시각화를 하나의 계층에 섞으면 검증 기준이 불명확해짐 |
 | 접근 | ROS2 / Gazebo / MoveIt2 / Unity / SDK 책임을 분리 |
 | Motion 결과 | TAKE1~TAKE7 Final Simulation PASS |
-| Unity 결과 | Joint Sync, Workcell Process, Camera/Recorder, UI Audit |
+| Unity 결과 | Joint Sync, Workcell Process, Camera/Recorder, UI 구성 |
 | Deployment 결과 | 개발 PC 기준본을 Laptop Runtime으로 재현 및 재검증 |
 | 남은 단계 | ROS2↔Unity Live E2E, RUN_TAKE, Actual FR5 |
 
@@ -55,7 +55,7 @@ Cocktail Demo 원본 내용은 [`../demos/01_fr5_sdk_cocktail_robot_demo/`](../d
 - Jig Pick / Carry / Insert / Release 과정 Simulation 검증
 - Unity에서 Source → SMT → Finish 공정 상태 표현
 - Simulation과 Actual Robot 경로 분리
-- READ-ONLY Audit, SHA, Contract Test로 회귀 방지
+- 변경 범위를 작게 유지하고 Static/Runtime 검증을 함께 사용해 회귀를 줄임
 - 최종 포트폴리오 촬영을 위한 Camera/Recorder 구성
 
 ## 내가 구현한 범위
@@ -70,19 +70,19 @@ Cocktail Demo 원본 내용은 [`../demos/01_fr5_sdk_cocktail_robot_demo/`](../d
 - Slot01~07 One-Take
 - Jig rigid follower
 - Negative-J6 Trajectory Guard
-- Laptop true headless Runtime
+- Laptop headless Simulation Runtime
 
 ### Unity
 
 - ROS2 JointState Runtime Sync
-- Runtime Source ownership
+- Runtime 입력 소유권
 - Source / Finish Magazine
 - Jig Visual Ownership
 - SMT Process
 - Workcell Runtime Status UI
 - Camera Director / Follow / Sequence
 - Unity Recorder 5.1.7
-- UI Button read-only connection audit
+- UI Button 연결 상태 점검
 
 ### Robot Interface
 
@@ -110,9 +110,6 @@ Slot08은 Source Magazine geometry에는 존재하지만 Jig를 생성하지 않
 
 | Asset | 기준 |
 |:---|:---|
-| Final Motion Master | `src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py` |
-| Master SHA256 | `80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be` |
-| Laptop ROS2 HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
 | Unity Scene | `Assets/Project/Scenes/01_FR_Simulator.unity` |
 | Unity | `6000.3.15f1` |
 | Recorder | `com.unity.recorder@5.1.7` |
@@ -125,10 +122,10 @@ Slot08은 Source Magazine geometry에는 존재하지만 Jig를 생성하지 않
 | TAKE1→TAKE7 | PASS |
 | Unity Camera switching | PASS |
 | Unity Recorder 설치/설정 | PASS |
-| Recorder MP4 sample | PENDING |
-| ROS2 ↔ Unity Live JointState | PENDING |
-| Unity `RUN_TAKE` Backend | PENDING |
-| Actual FR5 Hardware | PENDING |
+| Recorder MP4 sample | 검증 예정 |
+| ROS2 ↔ Unity Live JointState | 검증 예정 |
+| Unity `RUN_TAKE` Backend | 검증 예정 |
+| Actual FR5 Hardware | 검증 예정 |
 
 ---
 

@@ -57,16 +57,16 @@ Backend Status는 `/fr5/command_status` JSON으로 publish합니다.
 | 항목 | 상태 |
 |:---|:---:|
 | Master `FR5_TAKE=1..7/ALL` | Simulation에서 확인 |
-| Listener `RUN_TAKE` | PENDING |
-| TAKE request_id / correlation | PENDING |
-| TAKE BUSY / complete | PENDING |
+| Listener `RUN_TAKE` | 후속 통합 단계 |
+| TAKE request_id / correlation | 후속 통합 단계 |
+| TAKE BUSY / complete | 후속 통합 단계 |
 | legacy STOP hold trajectory | 구현 |
-| active Master STOP | PENDING |
-| Hardware Emergency Stop | Actual Robot 검증 PENDING |
+| active Master STOP | 후속 통합 단계 |
+| Hardware Emergency Stop | 실제 장비에서 검증 예정 |
 
 legacy STOP을 Hardware E-Stop과 같은 기능으로 표현하지 않습니다.
 
-## Runtime Source
+## Runtime 입력 모드
 
 ```mermaid
 flowchart LR
@@ -84,10 +84,10 @@ flowchart LR
 |:---|:---|:---:|
 | Simulation | Gazebo/MoveIt Motion | PASS |
 | Unity Visualization | Camera/GUI/Process | 구현/부분 PASS |
-| ROS2↔Unity Live | Network JointState | PENDING |
-| SDK Read-only | 실제 Robot state | PENDING |
-| Actual Command | 실제 Robot motion | PENDING |
-| Safety | 실제 stop/abort/speed | PENDING |
+| ROS2↔Unity Live | Network JointState | 최종 통합 검증 예정 |
+| SDK Read-only | 실제 Robot state | 실제 장비 검증 예정 |
+| Actual Command | 실제 Robot motion | 실제 장비 검증 예정 |
+| Safety | 실제 stop/abort/speed | 실제 장비 검증 예정 |
 
 ## 실제 Hardware 최종 확인 항목
 

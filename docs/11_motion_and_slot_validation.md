@@ -2,7 +2,7 @@
 
 # 11. Motion & Slot Validation
 
-> Slot별 Motion을 하나씩 검증하고 PASS한 값만 Final Master에 누적해 회귀를 줄였습니다.
+> Slot별 Motion을 단계적으로 검증하고, 확인된 경로만 통합 실행 시퀀스에 반영했습니다.
 
 [문서 목차](README.md) · [프로젝트 README](../README.md) · [ROS2 / Gazebo / MoveIt2](08_ros2_gazebo_moveit.md)
 
@@ -24,13 +24,6 @@
 ```text
 src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
 ```
-
-SHA256:
-
-```text
-80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
-```
-
 ## TAKE Selector
 
 | 값 | 실행 |
@@ -102,24 +95,22 @@ Carry 중 relative pose가 유지되는지 확인합니다.
 
 초기 운영 메모에는 ACTION05 범위를 Slot01~02로 제한한 표현이 있었지만, 최종 Laptop 실행 log에는 TAKE3~7 sequence에서도 ACTION05 단계가 관찰되었습니다.
 
-따라서 최종 문서는 ACTION05를 Slot 범위로 단순화하지 않고 **Final Master와 실제 Final Runtime log를 기준**으로 설명합니다. 핵심 검증 대상은 ACTION label 자체보다 Pick/Extract/Carry/Insert/Retreat와 Negative-J6, follower, collision validity입니다.
+ACTION05는 Slot 범위 전체에 하나의 규칙으로 단순화하지 않고 TAKE별 실행 시퀀스에 따라 적용합니다. 핵심 검증 대상은 Pick/Extract/Carry/Insert/Retreat, Negative-J6, Jig follower, collision validity입니다.
 
 ## Laptop Final Revalidation
 
 ```text
 Laptop HEAD
-f02799cfd3126210ef72238990861c9c027c84af
 
-Final Master SHA
-80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
+통합 모션 시퀀스 SHA
 ```
 
 Final result:
 
 ```text
-FINAL ONE-TAKE TAKE1 -> TAKE7 PASS
+TAKE1 → TAKE7 순차 실행 완료
 FINAL_MASTER_RETURN_CODE=0
-TAKE1_TO_TAKE7_FINAL_SIMULATION=PASS
+TAKE1_TO_TAKE7_SIMULATION=COMPLETE
 ```
 
 Performance 문제를 이유로 Motion Pose를 다시 튜닝하지 않았습니다.

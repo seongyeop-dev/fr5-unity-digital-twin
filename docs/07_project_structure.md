@@ -35,7 +35,7 @@ FAIRINO_FR5_DigitalTwin/
 
 ## 보존된 SDK 중간 시연
 
-Digital Twin 저장소 안에는 이전 FR5 SDK 중간 시연을 별도 Snapshot으로 보존합니다.
+Digital Twin 저장소 안에는 이전 FR5 SDK 중간 시연을 별도 Demo으로 보존합니다.
 
 ```text
 demos/
@@ -50,19 +50,15 @@ demos/
    └─ src/
 ```
 
-- Source 기준: `main` @ `6dffa7995c9c68969b9d2b721ce952511422514c`
-- Source tracked file: 31개
-- Snapshot 내부 파일: 수정 없음
-- Migration 검증: Source ↔ Target SHA256 31/31 일치
+- Demo 내부 파일: 수정 없음
 - `.git`은 중첩 저장소 방지를 위해 포함하지 않음
 
-Snapshot 내부의 기존 `.gitattributes`, `.gitignore`, README, docs, source, media는 원본 내용을 유지합니다.
+Demo 내부의 기존 `.gitattributes`, `.gitignore`, README, docs, source, media는 원본 내용을 유지합니다.
 
 ## ROS2 핵심 파일
 
 | Path | 역할 |
 |:---|:---|
-| `src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py` | Final Motion Master |
 | `src/fr5_moveit_config/config/slot01_to_slot08_final_one_take_v1.yaml` | Slot Motion 설정 |
 | `src/fr5_gazebo/worlds/fr5_workcell.sdf` | Workcell World |
 | `src/fr5_gazebo/launch/fr5_workcell.launch.py` | Workcell launch / headless args |
@@ -75,7 +71,7 @@ Snapshot 내부의 기존 `.gitattributes`, `.gitignore`, README, docs, source, 
 | Script | 역할 |
 |:---|:---|
 | `scr_FR5Ros2JointStateClient.cs` | ROS2 JointState 수신 |
-| `scr_FR5RuntimeSyncManager.cs` | Runtime Source ownership |
+| `scr_FR5RuntimeSyncManager.cs` | Runtime 입력 소유권 |
 | `scr_VirtualJointController.cs` | J1~J6 Transform 적용 |
 | `scr_FR5Ros2CommandPublisher.cs` | ROS2 Command publish |
 | `scr_FR5Ros2CommandStatusClient.cs` | Command Status client 구조 |
@@ -108,7 +104,7 @@ Snapshot 내부의 기존 `.gitattributes`, `.gitignore`, README, docs, source, 
 | Script | 역할 |
 |:---|:---|
 | `FR5SourceFinishSetup.cs` | Source/Finish no-save setup |
-| `FR5LiveSceneAlignmentAudit.cs` | Scene / UI / binding read-only audit |
+| `FR5LiveSceneAlignmentAudit.cs` | Scene / UI / binding 구조 점검 |
 | `FR5WorkcellEditLayoutTool.cs` | Workcell edit tool |
 | `FR5RobotCellCriticalTool.cs` | Robot cell critical audit |
 | `FR5SmtCellLayoutTool.cs` | SMT layout tool |

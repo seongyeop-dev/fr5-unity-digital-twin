@@ -9,7 +9,7 @@
 ## Unity 역할
 
 - FR5 Joint Runtime Sync
-- Runtime Source ownership
+- Runtime 입력 소유권
 - Robot / Workcell visualization
 - Source / Finish Magazine
 - Jig Visual Ownership
@@ -18,7 +18,7 @@
 - Workcell Status
 - Portfolio Camera / Recording
 
-## Runtime Source Ownership
+## Runtime 입력 소유권
 
 ```mermaid
 flowchart TB
@@ -42,7 +42,7 @@ flowchart TB
 | Camera 기본 Transform | Camera switching |
 | UI hierarchy | Status text |
 
-No-Save Editor Utility와 Read-only Audit을 사용해 Runtime 검증이 기준 Scene을 임의 변경하지 않게 했습니다.
+Editor Utility와 Scene 구성 점검 도구를 사용해 Runtime 테스트가 기준 Scene을 임의로 변경하지 않도록 했습니다.
 
 ## Source Magazine
 
@@ -111,9 +111,9 @@ Runtime Panel에 Process / Phase / Source / Finish 요약을 0.2초 throttle/cac
 
 기술명 `FR5`, `ROS2`, `SDK`, `TCP`는 영문으로 유지하고 사용자 동작/상태 문구만 한국어 중심으로 정리합니다.
 
-## UI Button Audit
+## UI 이벤트 구성
 
-Read-only Live Scene Audit 기준:
+Scene 구성 점검 기준:
 
 | 항목 | 결과 |
 |:---|---:|
@@ -176,9 +176,9 @@ Recorder는 Unity clean B-roll 용도로 사용하며 Gazebo/RViz/Unity 동시 �
 | STOP listener 1 | PASS |
 | Workcell Text binding | PASS |
 | Recorder 설치/설정 | PASS |
-| MP4 sample | PENDING |
-| ROS2 live JointState E2E | PENDING |
-| Actual FR5 SDK E2E | PENDING |
+| MP4 sample | 최종 촬영 단계에서 확인 예정 |
+| ROS2 live JointState E2E | 최종 통합 검증 예정 |
+| Actual FR5 SDK E2E | 실제 장비 검증 예정 |
 
 ---
 

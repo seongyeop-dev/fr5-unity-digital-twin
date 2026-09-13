@@ -91,7 +91,7 @@ flowchart LR
 ### Unity
 
 - JointState 시각 반영
-- Runtime Source ownership
+- Runtime 입력 소유권 관리
 - Source / Finish Magazine
 - Jig Ownership
 - SMT Process

@@ -2,31 +2,31 @@
 
 # 14. Deployment & Laptop Handoff
 
-> Source, build artifact, Runtime environment를 구분하고 **Git lineage + 보호 SHA + fresh build**로 Simulation 기준을 노트북에 재현했습니다.
+> Source, build artifact, Runtime environment를 구분하고 **Workspace ?? + 기준 파일 + fresh build**로 Simulation 기준을 노트북에 재현했습니다.
 
 [문서 목차](README.md) · [프로젝트 README](../README.md) · [Laptop Runtime](15_laptop_ros2_simulation_runtime.md)
 
-## Source of Truth
+## 기준 구성
 
-| 항목 | 기준 |
+| 항목 | 구성 |
 |:---|:---|
-| ROS2 Repository | `git@github.com:seongyeop-dev/fr5_ros2_ws.git` |
-| Branch | `feat/fr5-gazebo-jig-attach-detach` |
+| Ubuntu | 24.04.4 LTS |
+| ROS2 | Jazzy |
+| Simulation | Gazebo 8, MoveIt2, RViz2 |
 | Workspace | `~/fr5_ros2_ws` |
-| Development baseline | `46cf3ace69154e8befb2fb3a78686cd931c3428a` |
-| Laptop Final HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
-| Local / Remote parity | PASS |
-| Unity Repository | `fr5-unity-digital-twin` |
+| Unity | Windows / Unity 6000.3.x |
+| Network Integration | ROS-TCP |
 
-## Locked Motion Assets
+개발 PC에서 검증한 Motion과 Workcell 구성을 노트북 Ubuntu에서 fresh build로 재구성하고, Gazebo·MoveIt2·Planning Scene·TAKE1~TAKE7 실행까지 다시 확인했습니다. 실제 FR5 장비 검증은 Simulation 결과와 분리해 진행합니다.
 
-| Asset | SHA256 |
-|:---|:---|
-| Motion Master | `80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be` |
-| Slot YAML | `b823401d6c77037ec35502a8e11ac35692f6f4a86ff7bf6c8efb8825a3f486e6` |
-| Workcell World | `dac1c53f068aa56dd497cf3f66e64559dda1af010584566c71d96bf95104be65` |
-| Workcell Launch | `a6b8c094d9653ae3bc65fcd56df2714d912f5fee78bec51dd1e7c56b50daead6` |
-| Gazebo Control Launch | `d2fd8e715b99ea1d65e1519b1cb8f198dfb09f8f48e61e31f13ded0f7edb907f` |
+## 주요 Motion 구성
+
+| 구성 | 경로 | 역할 |
+|:---|:---|:---|
+| Motion Script | `src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py` | Slot01~07 Pick & Place 실행 |
+| Slot Config | `src/fr5_moveit_config/config/slot01_to_slot08_final_one_take_v1.yaml` | Slot별 Pose와 Motion 설정 |
+| Workcell World | `src/fr5_gazebo/worlds/fr5_workcell.sdf` | Gazebo 설비 배치 |
+| Workcell Launch | `src/fr5_gazebo/launch/fr5_workcell.launch.py` | Gazebo Runtime 실행 |
 
 ## Deployment Topology
 
@@ -41,10 +41,10 @@ flowchart LR
 ## Laptop Migration
 
 1. 기존 Workspace 상태 확인
-2. Git lineage / remote / branch / dirty 확인
+2. Workspace와 의존성 상태 확인
 3. 안전한 fast-forward만 수행
 4. 불확실하면 기존 Workspace 보존
-5. 보호 SHA 확인
+5. 기준 파일 확인
 6. `build/install/log` 복사 금지
 7. fresh `colcon build --symlink-install`
 8. read-only preflight
@@ -110,9 +110,9 @@ GRIPPER_RETURN_OPEN
 | Master `FR5_TAKE=1..7` | PASS |
 | Master `ALL` | PASS |
 | TAKE8 | OUT OF SCOPE |
-| Listener `RUN_TAKE` | PENDING |
-| request/status correlation | PENDING |
-| active Master STOP | PENDING |
+| Listener `RUN_TAKE` | 후속 통합 단계 |
+| request/status correlation | 후속 통합 단계 |
+| active Master STOP | 후속 통합 단계 |
 
 Unity Slot UI의 존재와 Backend RUN_TAKE의 존재를 같은 것으로 취급하지 않습니다.
 
@@ -158,7 +158,7 @@ Build 성공이나 Simulation `--execute`는 Actual Robot command 허가가 아�
 - active Master STOP
 - Actual FR5 feedback / command / safety
 
-노트북 Source 복원과 Simulation Runtime 검증은 더 이상 Pending이 아닙니다.
+노트북에서는 fresh build와 Simulation Runtime 재검증까지 완료했으며, 실제 FR5 장비 검증은 별도 단계로 남아 있습니다.
 
 ---
 

@@ -17,7 +17,7 @@
 | Visualization | 10-shot Camera / Follow / Recorder |
 | Interface | ROS2 Command / Status / SDK 구조 |
 | Deployment | Laptop Simulation Runtime |
-| Hardware | 구조/경계만 포함, 최종 실제 실행은 PENDING |
+| Hardware | Interface 구조 포함, 실제 장비 End-to-End 검증은 추후 진행 |
 
 ## 포함 범위
 
@@ -48,7 +48,7 @@
 - Read-only Feedback 우선
 - ROS2 legacy Command Publisher / Listener
 - Backend Status
-- Runtime Source separation
+- Runtime 입력 분리
 
 ## 의도적으로 제외 / 보수적 유지
 

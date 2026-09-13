@@ -40,28 +40,21 @@ flowchart LR
 | Unity | STOP listener 1 | PASS |
 | Unity | Workcell Status Text binding | PASS |
 | Unity | Camera/Follow static regression | PASS |
-| Unity | UI Button 96개 read-only audit | AUDITED |
+| Unity | UI Button 96개 구조 점검 | 구조 확인 |
 | Recorder | Recorder 5.1.7 install | PASS |
 | Recorder | FHD 1080p30 config | PASS |
-| Recorder | 실제 MP4 sample | PENDING |
-| ROS2↔Unity | Live JointState E2E | PENDING |
-| Unity→TAKE | RUN_TAKE / correlation / BUSY / active STOP | PENDING |
-| Actual FR5 | Feedback / Command / Safety | PENDING |
+| Recorder | 실제 MP4 sample | 검증 예정 |
+| ROS2↔Unity | Live JointState E2E | 검증 예정 |
+| Unity→TAKE | RUN_TAKE / correlation / BUSY / active STOP | 검증 예정 |
+| Actual FR5 | Feedback / Command / Safety | 검증 예정 |
 
 ## ROS2 / Gazebo / MoveIt2
 
-Final Master:
+통합 모션 시퀀스:
 
 ```text
 src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
 ```
-
-SHA256:
-
-```text
-80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
-```
-
 최종 실행 결과:
 
 ```text
@@ -90,8 +83,6 @@ UNEXPECTED_WORLD_OBJECTS=NONE
 
 | 항목 | 결과 |
 |:---|:---|
-| Branch | `feat/fr5-gazebo-jig-attach-detach` |
-| Laptop HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
 | Remote parity | PASS |
 | Fresh build | PASS |
 | Master SHA 유지 | PASS |
@@ -135,9 +126,9 @@ Workcell Text bound = PASS
 
 Camera switching은 Play Mode에서 `1~9`, `0`, Main fallback 전환을 확인했습니다. 최종 pose/FOV는 실제 ROS2 촬영 시 미세조정합니다.
 
-## UI Button Audit
+## UI 구성 검증
 
-Read-only Live Scene Audit에서 사용자 Button 96개를 수집했습니다.
+Scene 구성 점검에서 사용자 Button 96개를 수집했습니다.
 
 | 항목 | 결과 |
 |:---|---:|
@@ -150,13 +141,13 @@ Read-only Live Scene Audit에서 사용자 Button 96개를 수집했습니다.
 | Missing Script | 0 |
 | STOP listener | 1 |
 
-추가 source trace가 필요한 항목:
+추가 ?? ?? ??가 필요한 항목:
 
 - `Btn_ResetToolOffset`: 2 persistent listeners
 - `Btn_RESET VIEW`: 2 persistent listeners
 - `Btn_OneTakeAll`, `Btn_Slot01~08`: 0 persistent listener — Runtime `AddListener` 여부 별도 확인
 
-따라서 96개 모두를 “실제 기능 실행 PASS”로 해석하지 않고, Scene binding audit와 Runtime execution을 구분합니다.
+Scene 연결 상태 확인과 실제 Runtime 실행 결과를 구분해 기록했습니다.
 
 ## Recorder Validation
 
@@ -183,14 +174,14 @@ Read-only Live Scene Audit에서 사용자 Button 96개를 수집했습니다.
 
 | 항목 | 상태 |
 |:---|:---:|
-| Legacy Command Listener | IMPLEMENTED |
-| `/fr5/command_status` Publisher | IMPLEMENTED |
+| Legacy Command Listener | 기존 명령 처리 확인 |
+| `/fr5/command_status` Publisher | Status 발행 구조 확인 |
 | Master `FR5_TAKE=1..7/ALL` | 확인 |
 | Unity Slot selection / mapping | 구현 |
-| `RUN_TAKE` Listener dispatch | PENDING |
-| request/status correlation | PENDING |
-| BUSY / completion lifecycle | PENDING |
-| active Master STOP | PENDING |
+| `RUN_TAKE` Listener dispatch | 후속 통합 단계 |
+| request/status correlation | 후속 통합 단계 |
+| BUSY / completion lifecycle | 후속 통합 단계 |
+| active Master STOP | 후속 통합 단계 |
 
 ## Actual Robot 경계
 

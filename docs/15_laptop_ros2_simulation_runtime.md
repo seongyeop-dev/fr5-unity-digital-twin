@@ -14,7 +14,6 @@
 | ROS2 | Jazzy |
 | Gazebo | Gazebo Sim 8 |
 | MoveIt2 | PASS |
-| Laptop HEAD | `f02799cfd3126210ef72238990861c9c027c84af` |
 | Remote parity | PASS |
 | Fresh build | PASS |
 | true headless RTF | `0.998` |
@@ -51,16 +50,13 @@ flowchart TB
 ## Source / Build Migration
 
 개발 PC의 `build/`, `install/`, `log/`를 복사하지 않고 Laptop에서 source 기준으로 fresh build했습니다. 기존 local backup과 untracked 파일은 삭제하지 않고 보존했습니다.
-
-Final Runtime commit:
-
+## Runtime 구성
 ```text
-f02799cfd3126210ef72238990861c9c027c84af
 ```
 
 ## Gazebo Python Dependency
 
-Final Master `--execute` 경로:
+통합 모션 시퀀스 `--execute` 경로:
 
 ```python
 from gz.msgs10.boolean_pb2 import Boolean
@@ -135,20 +131,13 @@ Slot08 : EMPTY
 
 Slot08 bracket geometry는 존재하지만 Jig model은 spawn하지 않습니다.
 
-## Final TAKE Revalidation
+## TAKE Revalidation
 
 Master:
 
 ```text
 src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
 ```
-
-SHA256:
-
-```text
-80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
-```
-
 Result:
 
 ```text
@@ -159,15 +148,15 @@ TAKE1_TO_TAKE7_FINAL_SIMULATION=PASS
 
 Motion 기준은 개발 PC에서 검증한 Master를 유지했고 Laptop 성능 문제 해결을 위해 Pose / IK / Slot Motion을 다시 튜닝하지 않았습니다.
 
-## Locked Runtime Assets
+## 주요 Runtime 구성
 
-| Asset | SHA256 |
+| 구성 | 역할 |
 |:---|:---|
-| Final Motion Master | `80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be` |
-| Slot YAML | `b823401d6c77037ec35502a8e11ac35692f6f4a86ff7bf6c8efb8825a3f486e6` |
-| Workcell World | `dac1c53f068aa56dd497cf3f66e64559dda1af010584566c71d96bf95104be65` |
-| Workcell Launch | `a6b8c094d9653ae3bc65fcd56df2714d912f5fee78bec51dd1e7c56b50daead6` |
-| Gazebo Control Launch | `d2fd8e715b99ea1d65e1519b1cb8f198dfb09f8f48e61e31f13ded0f7edb907f` |
+| Gazebo Workcell | FR5와 설비 물리 시뮬레이션 |
+| MoveIt2 | Motion Planning과 Trajectory 실행 |
+| ros2_control | Arm / Gripper Controller |
+| Planning Scene | Robot 주변 설비 Collision 구성 |
+| Motion Script | TAKE1~TAKE7 순차 실행 |
 
 ## Validation Boundary
 

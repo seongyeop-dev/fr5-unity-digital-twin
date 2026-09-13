@@ -14,7 +14,7 @@
 | Gazebo | Physics / Controller / Workcell |
 | MoveIt2 | Planning / Collision / Trajectory |
 | RViz2 | Planning Scene / Robot visualization |
-| Final Master | Slot sequence / guards / execution |
+| 통합 모션 시퀀스 | Slot sequence / guards / execution |
 
 ## Workcell
 
@@ -94,22 +94,14 @@ Jig를 목적지로 순간 이동시키지 않고 Tool과의 상대관계를 유
 
 ## ACTION 단계 설명 원칙
 
-초기 문서에는 Slot 범위별 ACTION05 정책을 단순화한 표현이 있었지만, 최종 Laptop Runtime log에는 후반 TAKE에서도 ACTION05 step이 관찰됩니다. 따라서 최종 포트폴리오에서는 ACTION05를 전역 규칙으로 일반화하지 않고 **Final Master에 고정된 TAKE별 실행 sequence를 source of truth**로 취급합니다.
+ACTION05는 TAKE별 실행 시퀀스에서 다르게 적용되므로 Slot 범위 전체에 동일한 규칙으로 일반화하지 않았습니다. 실제 동작은 통합 모션 스크립트의 TAKE별 sequence를 기준으로 설명합니다.
 
-즉, 면접용 설명에서는 “Slot03~07은 무조건 ACTION05 미사용”처럼 과도하게 일반화하지 않고 실제 Final Master / Runtime evidence를 기준으로 설명합니다.
 
-## Final Master
+## 통합 모션 실행 구조
 
 ```text
 src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
 ```
-
-SHA256:
-
-```text
-80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
-```
-
 TAKE1~TAKE7 Final Simulation PASS, TAKE8은 운영 제외입니다.
 
 ## Laptop Performance 문제 해결

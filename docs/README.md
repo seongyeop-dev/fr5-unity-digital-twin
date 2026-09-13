@@ -38,27 +38,29 @@
 | [11. Motion & Slot Validation](11_motion_and_slot_validation.md) | TAKE1~07, Slot, Cartesian, J6 검증 |
 | [12. Script Reference](12_script_reference.md) | Python/C#/Launch/YAML/World 핵심 파일 |
 | [13. Design Decisions & Issues](13_design_decisions_and_issues.md) | 문제, 원인, 선택, 결과 |
-| [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md) | Source of Truth, Runtime 복원, Hardware 전 단계 |
+| [14. Deployment & Laptop Handoff](14_deployment_and_handoff.md) | 기준 구성, Runtime 복원, Hardware 전 단계 |
 | [15. Laptop ROS2 Simulation Runtime](15_laptop_ros2_simulation_runtime.md) | fresh build, headless, RTF, Final TAKE 재검증 |
-| [16. Unity Camera & Recording](16_unity_camera_and_recording.md) | 10-shot Camera, Follow, Recorder, UI Button Audit |
+| [16. Unity Camera & Recording](16_unity_camera_and_recording.md) | 10-shot Camera, Follow, Recorder, UI Button 연결 점검 |
 
-## 중간 시연 / 보존 Snapshot
+## FR5 SDK 초기 제어 프로젝트
 
 | 자료 | 목적 |
 |:---|:---|
 | [FR5 Demo Archive](../demos/README.md) | SDK 교육 → 중간 시연 → Digital Twin 발전 흐름 |
-| [FR5 Cocktail Robot Demo Snapshot](../demos/01_fr5_sdk_cocktail_robot_demo/README.md) | 기존 독립 Demo의 원본 README / source / media / docs |
+| [FR5 Cocktail Robot Demo](../demos/01_fr5_sdk_cocktail_robot_demo/README.md) | 기존 독립 Demo의 원본 README / source / media / docs |
 
-Cocktail Demo Snapshot 내부 파일은 현재 Digital Twin 문서 스타일에 맞추기 위해 재작성하지 않고 원본 상태로 보존합니다.
+Cocktail Robot Demo는 FR5 SDK 기반 초기 제어 경험과 실제 시연 자료를 확인할 수 있는 하위 프로젝트입니다.
 
 ## 검증 상태 표기
 
 | 상태 | 의미 |
 |:---|:---|
 | `PASS` | 해당 계층에서 실제 실행/검증 완료 |
-| `IMPLEMENTED` | 구현은 완료했으나 상위 Runtime 검증이 남음 |
-| `AUDITED` | Read-only/static structure and connection audit completed; Runtime source trace may remain |
-| `PENDING` | 통합 또는 실제 실행 검증 전 |
+| 구분 | 의미 |
+|:---|:---|
+| 구현 완료 | 코드와 기능 구성이 완료된 항목 |
+| 시뮬레이션 검증 | Gazebo/MoveIt2 또는 Unity Play Mode에서 실행을 확인한 항목 |
+| 검증 예정 | 실제 장비 또는 최종 통합 환경에서 추가 확인할 항목 |
 | `OUT OF SCOPE` | 현재 운영 범위에서 의도적으로 제외 |
 
 `Simulation PASS`, `Unity Live Integration PASS`, `Actual Robot PASS`는 서로 대체하지 않습니다.

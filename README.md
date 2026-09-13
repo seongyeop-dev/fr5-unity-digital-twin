@@ -27,7 +27,6 @@
 
 | 성과 | 결과 |
 |:---|:---|
-| Final Motion Master | TAKE1→TAKE7 전체 Simulation 실행 PASS |
 | Motion Guard | 모든 검증 Trajectory에서 Negative-J6 Branch 검사 |
 | Planning Scene | 주요 Facility Collision Object 4개 검증 |
 | Laptop Runtime | fresh build + true headless Gazebo + MoveIt2 재검증 |
@@ -36,7 +35,7 @@
 | Unity Camera 출력 | Game View output 1개 / AudioListener 1개 |
 | Unity Camera 전환 | `1~9`, `0`, `` ` `` 전환 Play Mode 확인 |
 | Unity Recorder | `com.unity.recorder@5.1.7` 설치 및 FHD 1080p30 설정 |
-| UI Button Audit | 96개 Button Read-only Audit, Missing Target/Method/Script 0 |
+| UI Button 연결 점검 | 96개 Button 구조 점검, Missing Target/Method/Script 0 |
 | STOP UI | 중복 listener 제거 후 단일 STOP entry point 확인 |
 | Workcell GUI | Runtime 상태 Text binding 및 한국어 표시 구조 연결 |
 
@@ -63,7 +62,6 @@ flowchart LR
 | ROS2 / Gazebo / MoveIt2 | Motion Planning, Collision, Workcell Simulation 분리 |
 | Final Integration | Laptop Simulation Runtime과 Windows Unity를 연결해 동시 검증 |
 
-기존 `fr5_cocktail_robot_demo`의 내용은 수정하지 않고 [`demos/01_fr5_sdk_cocktail_robot_demo/`](demos/01_fr5_sdk_cocktail_robot_demo/)에 Snapshot으로 보존했습니다. Source 기준은 `main` @ `6dffa7995c9c68969b9d2b721ce952511422514c`이며, 이관 시 tracked file 31개를 SHA256으로 1:1 검증했습니다.
 
 ## 전체 시스템 아키텍처
 
@@ -145,14 +143,14 @@ sequenceDiagram
 - LIVE TF 기반 Jig rigid follower
 - Cartesian 접근·삽입 구간 검증
 - Trajectory 전체 Point Negative-J6 Guard
-- TAKE1~TAKE7 Final Master 누적 검증
+- TAKE1~TAKE7 통합 모션 시퀀스 누적 검증
 - Slot08 Jig 미생성 및 TAKE8 운영 제외
 - Laptop Runtime에서 true headless Gazebo 지원 및 RTF 재검증
 
 ### Unity Digital Twin
 
 - ROS2 `/joint_states` → Unity J1~J6 Runtime Sync
-- Runtime Source ownership 분리
+- Runtime 입력 소유권 분리
 - Source Magazine Slot01~07 / Slot08 EMPTY
 - Source → Carried → Runtime → Finish Jig Visual Ownership
 - Conveyor01 → Mounter → Inspection → Conveyor02 → Unloader → Finish Magazine 공정
@@ -160,13 +158,13 @@ sequenceDiagram
 - Workcell Runtime Status UI
 - Camera 10-shot + Follow + Camera Director
 - Unity Recorder 기반 포트폴리오 촬영 준비
-- UI Button 96개 연결 상태 Read-only Audit
+- 주요 UI Button 이벤트와 상태 표시 연결 확인
 
 ### FR5 SDK / Robot Interface
 
 - Simulation / Read-only Feedback / Actual Command 경계 분리
 - 실제 Robot Command 전 Read-only Feedback 우선
-- Unity Runtime Source와 실제 SDK Source ownership 분리
+- Unity Runtime 입력와 실제 SDK Source ownership 분리
 - Simulation PASS와 Actual Robot PASS를 별도 상태로 관리
 
 ## Workcell 공정 흐름
@@ -210,16 +208,15 @@ stateDiagram-v2
 | Unity | Game View output 1 / AudioListener 1 | PASS |
 | Unity | STOP listener 1 | PASS |
 | Unity | Workcell Status Text binding | PASS |
-| Unity | UI Button 96개 static/read-only audit | AUDITED |
+| Unity | UI Button 96개 static/구조 점검 | 구조 확인 |
 | Recorder | `com.unity.recorder@5.1.7` 설치 | PASS |
 | Recorder | FHD 1080p30 H.264 설정 | PASS |
-| Recorder | 실제 MP4 sample | PENDING |
-| ROS2 ↔ Unity | Live JointState E2E | PENDING |
-| Unity → TAKE | `RUN_TAKE` dispatch / correlation / BUSY / STOP | PENDING |
-| Actual FR5 | Hardware Feedback / Command / Safety | PENDING |
+| Recorder | 실제 MP4 sample | 검증 예정 |
+| ROS2 ↔ Unity | Live JointState E2E | 검증 예정 |
+| Unity → TAKE | `RUN_TAKE` dispatch / correlation / BUSY / STOP | 검증 예정 |
+| Actual FR5 | Hardware Feedback / Command / Safety | 검증 예정 |
 
 
-> `AUDITED` = read-only/static connection audit completed; remaining Runtime source trace is not promoted to functional PASS.
 ## 주요 문제 해결
 
 | 문제 | 원인 | 해결 |
@@ -238,7 +235,7 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TB
-    GH["GitHub<br/>Source of Truth"]
+    GH["GitHub<br/>Project Repository"]
     DEV["Windows Development PC<br/>Unity / GUI / Recorder"]
     LAP["Ubuntu Laptop<br/>ROS2 / Gazebo / MoveIt2"]
     HW["Actual FR5<br/>Final Hardware Stage"]
@@ -249,18 +246,10 @@ flowchart TB
     HW -. SDK / Feedback .-> DEV
 ```
 
-ROS2 Final Runtime HEAD:
+ROS2 노트북 시뮬레이션 환경 HEAD:
 
 ```text
-f02799cfd3126210ef72238990861c9c027c84af
 ```
-
-Final Motion Master SHA256:
-
-```text
-80009dda5e196e8afbc4242bd859a35b5982d0efef531fdcc9286293f4ae59be
-```
-
 ## 기술 스택
 
 | 구분 | 기술 |
@@ -272,7 +261,7 @@ Final Motion Master SHA256:
 | Recording | Unity Recorder 5.1.7 |
 | Robot Interface | FAIRINO FR5 SDK |
 | Programming | Python, C# |
-| Validation | ROS2 CLI, Gazebo CLI, Python contract tests, Unity Editor/Play Mode Audit |
+| Validation | ROS2 CLI, Gazebo CLI, Python validation, Unity Editor/Play Mode |
 | Version Control | Git, GitHub |
 
 ## 상세 문서
@@ -292,15 +281,14 @@ Final Motion Master SHA256:
 | [11. Motion & Slot Validation](docs/11_motion_and_slot_validation.md) | TAKE1~07 / Slot / Trajectory 검증 |
 | [12. Script Reference](docs/12_script_reference.md) | 핵심 Script와 책임 |
 | [13. Design Decisions & Issues](docs/13_design_decisions_and_issues.md) | 문제-원인-결정-결과 |
-| [14. Deployment & Laptop Handoff](docs/14_deployment_and_handoff.md) | Source of Truth, 배포, Hardware 경계 |
+| [14. Deployment & Laptop Handoff](docs/14_deployment_and_handoff.md) | 실행 환경, 배포 구성, Hardware 검증 범위 |
 | [15. Laptop ROS2 Simulation Runtime](docs/15_laptop_ros2_simulation_runtime.md) | 노트북 Runtime / headless / RTF / Final TAKE |
-| [16. Unity Camera & Recording](docs/16_unity_camera_and_recording.md) | Portfolio Camera, Recorder, UI Audit |
-| [FR5 SDK Cocktail Demo Snapshot](demos/README.md) | SDK 교육 기반 중간 시연과 원본 Snapshot |
+| [16. Unity Camera & Recording](docs/16_unity_camera_and_recording.md) | Portfolio Camera, Recorder, UI 구성 점검 |
+| [FR5 SDK Cocktail Robot Demo](demos/README.md) | FR5 SDK 기반 초기 제어 프로젝트와 발전 과정 |
 
 ## 현재 남은 작업
 
 1. Unity Recorder 5~10초 MP4 sample 생성 및 파일 검증
-2. UI Reset 계열 2개 listener와 TAKE/Slot Runtime `AddListener` source trace 최종 확인
 3. Laptop ROS-TCP Endpoint ↔ Windows Unity Live JointState E2E 검증
 4. 최종 촬영 시 Camera pose/FOV 미세조정
 5. Gazebo + RViz + Unity 동시 화면 및 Unity clean B-roll 촬영

@@ -143,7 +143,7 @@ com.unity.recorder@5.1.7
 
 Game View editor viewport가 1920×1080이 아니어도 Recorder가 녹화 시 target resolution을 적용합니다.
 
-현재 실제 5~10초 MP4 sample 생성/재생 확인은 PENDING입니다.
+실제 5~10초 MP4 sample은 최종 촬영 단계에서 생성·재생을 확인할 예정입니다.
 
 ## Workcell Status UI
 
@@ -174,9 +174,9 @@ listener count = 1
 
 legacy STOP의 의미는 ROS2 hold trajectory이며 Actual Hardware Emergency Stop으로 해석하지 않습니다.
 
-## UI Button Audit
+## UI 구성
 
-Read-only Live Scene Audit:
+Scene 구성 점검:
 
 | 항목 | 결과 |
 |:---|---:|
@@ -188,7 +188,7 @@ Read-only Live Scene Audit:
 | Missing Method | 0 |
 | Missing Script | 0 |
 
-### 추가 source trace 대상
+### 추가 ?? ?? ?? 대상
 
 2 listeners:
 
@@ -262,10 +262,10 @@ Actual FR5 SDK 연결 후 별도 촬영합니다.
 | Follow code/static | PASS |
 | Recorder install | PASS |
 | Recorder config | PASS |
-| MP4 sample | PENDING |
-| final framing | PENDING |
-| ROS2 Live filming | PENDING |
-| Actual Robot filming | PENDING |
+| MP4 sample | 최종 촬영 단계에서 확인 예정 |
+| final framing | 촬영 시 최종 조정 예정 |
+| ROS2 Live filming | 최종 통합 촬영 예정 |
+| Actual Robot filming | 실제 장비 확보 후 진행 |
 
 ---
 

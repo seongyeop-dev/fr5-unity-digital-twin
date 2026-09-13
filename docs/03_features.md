@@ -16,21 +16,21 @@
 | Motion | TAKE8 | OUT OF SCOPE |
 | Motion | Negative-J6 Guard | PASS |
 | Jig | LIVE TF rigid follower | PASS |
-| Unity | ROS2 JointState Sync | IMPLEMENTED |
-| Unity | Source / Finish Magazine | IMPLEMENTED |
-| Unity | Jig Ownership | IMPLEMENTED |
-| Unity | SMT Process | IMPLEMENTED |
+| Unity | ROS2 JointState Sync | 구현 완료 |
+| Unity | Source / Finish Magazine | 구현 완료 |
+| Unity | Jig Ownership | 구현 완료 |
+| Unity | SMT Process | 구현 완료 |
 | Unity | Camera 10-shot switching | PASS |
-| Unity | Cinematic Follow | IMPLEMENTED / Play Mode switching PASS |
-| Unity | Recorder 5.1.7 | PASS (Install / Config) |
-| Unity | Recorder MP4 sample | PENDING |
+| Unity | Cinematic Follow | 구현 완료 · Play Mode 시점 전환 확인 |
+| Unity | Recorder 5.1.7 | FHD 1080p30 설정 완료 |
+| Unity | Recorder MP4 sample | 검증 예정 |
 | GUI | Workcell Status Text | PASS (Scene Verify) |
 | GUI | STOP single listener | PASS |
-| GUI | 96 Button Audit | AUDITED |
-| ROS2↔Unity | Live JointState E2E | PENDING |
-| TAKE | Unity `RUN_TAKE` Backend | PENDING |
-| SDK | Read-only Feedback 구조 | IMPLEMENTED |
-| Actual FR5 | Hardware E2E | PENDING |
+| GUI | 96 Button Audit | 구조 확인 |
+| ROS2↔Unity | Live JointState E2E | 최종 통합 검증 예정 |
+| TAKE | Unity `RUN_TAKE` Backend | 후속 통합 단계 |
+| SDK | Read-only Feedback 구조 | 구현 완료 |
+| Actual FR5 | Hardware E2E | 실제 장비 검증 예정 |
 
 ## FR5 SDK 중간 시연 데모
 
@@ -46,7 +46,7 @@ Digital Twin 이전 단계에서 FR5 SDK 교육을 기반으로 실제 Robot Con
 
 이 단계의 목적은 현재 Digital Twin 기능을 중복 설명하는 것이 아니라, **SDK 기반 실제 Robot Control 경험이 이후 ROS2·Gazebo·MoveIt2·Unity 구조로 확장됐음을 보여주는 것**입니다.
 
-원본 Snapshot: [`demos/01_fr5_sdk_cocktail_robot_demo`](../demos/01_fr5_sdk_cocktail_robot_demo/)
+초기 제어 프로젝트: [`demos/01_fr5_sdk_cocktail_robot_demo`](../demos/01_fr5_sdk_cocktail_robot_demo/)
 
 ## ROS2 / Gazebo / MoveIt2
 
@@ -73,7 +73,7 @@ Gripper Open
 → Conveyor
 ```
 
-Final Master:
+통합 모션 시퀀스:
 
 ```text
 src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
@@ -176,17 +176,16 @@ Play Mode에서 Shot 전환 자체는 확인했습니다. 최종 framing은 ROS2
 - Audio: OFF
 - Output: `Project/Recordings`
 
-실제 sample MP4 생성은 아직 PENDING입니다.
+실제 5~10초 샘플 영상은 최종 촬영 단계에서 생성·재생을 확인할 예정입니다.
 
-## GUI / UI Audit
+## GUI / UI 구성 점검
 
 - STOP listener 1개
 - Workcell Status Text binding
 - 기술 고유명사 `FR5`, `ROS2`, `SDK`, `TCP`는 영문 유지
 - 신규 상태/공정 사용자 문구는 한국어 중심
-- Button 96개 read-only audit
+- Button 96개 구조 점검
 - Missing Target / Method / Script = 0
-- Reset 계열 2개 double-listener는 source trace 필요
 - Slot01~08 / OneTakeAll 9개 zero persistent listener는 Runtime `AddListener` trace 필요
 
 ## FR5 SDK / Robot Interface
