@@ -187,10 +187,13 @@ Jig 공정과 Camera는 별도 입력·소유권을 갖도록 구성했습니다
 
 ## 문서 목차
 
-[프로젝트 README](README.md) · [문서 목록](docs/README.md) · [맨 위로](#top)
+| 구분 | 바로가기 |
+| --- | --- |
+| **프로젝트** | [프로젝트 README](README.md) · [전체 문서 인덱스](docs/README.md) |
+| **기본 문서** | [01 Overview](docs/01_overview.md) · [02 Architecture](docs/02_architecture.md) · [03 Features](docs/03_features.md) · [04 Data Flow](docs/04_data_flow.md) · [05 Validation](docs/05_validation.md) · [06 Scope](docs/06_project_scope.md) · [07 Structure](docs/07_project_structure.md) |
+| **상세 기술 문서** | [08 ROS2 / Gazebo / MoveIt2](docs/08_ros2_gazebo_moveit.md) · [09 Unity Digital Twin](docs/09_unity_digital_twin.md) · [10 FR5 SDK](docs/10_fr5_sdk_integration.md) · [11 Motion & Slot Validation](docs/11_motion_and_slot_validation.md) · [12 Script Reference](docs/12_script_reference.md) · [13 Design Decisions](docs/13_design_decisions_and_issues.md) · [14 Deployment](docs/14_deployment_and_handoff.md) · [15 Simulation Runtime](docs/15_laptop_ros2_simulation_runtime.md) · [16 Camera & Recording](docs/16_unity_camera_and_recording.md) |
+| **수학 · 기구학 검증** | [Validation 문서](docs/05_validation.md) · [Motion Validation](docs/11_motion_and_slot_validation.md) · [MDH Parameters](Python/Phase1_Kinematics/Python_MDH/fr5_mdh_params.py) · [Python FK Solver](Python/Phase1_Kinematics/Python_MDH/fr5_fk_solver.py) · [Kinematics Tests](Python/Phase1_Kinematics/Tests/) |
+| **실제 FR5 · Cocktail Demo** | [Demo Hub](demos/README.md) · [FR5 SDK Cocktail Robot Demo](demos/01_fr5_sdk_cocktail_robot_demo/README.md) |
+| **ROS2 Simulation** | [ROS2 / Gazebo / MoveIt2 문서](docs/08_ros2_gazebo_moveit.md) · [fr5_ros2_ws Repository](https://github.com/seongyeop-dev/fr5_ros2_ws) |
 
-**기본 문서**
-[01 Overview](docs/01_overview.md) · [02 Architecture](docs/02_architecture.md) · [03 Features](docs/03_features.md) · [04 Data Flow](docs/04_data_flow.md) · [05 Validation](docs/05_validation.md) · [06 Scope](docs/06_project_scope.md) · [07 Structure](docs/07_project_structure.md)
-
-**상세 기술 문서**
-[08 ROS2/Gazebo/MoveIt2](docs/08_ros2_gazebo_moveit.md) · [09 Unity](docs/09_unity_digital_twin.md) · [10 FR5 SDK](docs/10_fr5_sdk_integration.md) · [11 Motion](docs/11_motion_and_slot_validation.md) · [12 Scripts](docs/12_script_reference.md) · [13 Decisions](docs/13_design_decisions_and_issues.md) · [14 Deployment](docs/14_deployment_and_handoff.md) · [15 Simulation](docs/15_laptop_ros2_simulation_runtime.md) · [16 Camera](docs/16_unity_camera_and_recording.md)
+[맨 위로 이동](#fairino-fr5-digital-twin)
