@@ -1,206 +1,64 @@
 <a id="top"></a>
 
-# 03. 주요 기능
+# 03. 핵심 기능
 
-> 기능을 “있다/없다”가 아니라 **구현 상태와 검증 상태를 함께** 기록합니다.
+## 구현 기능
 
-[문서 목차](README.md) · [프로젝트 README](../README.md) · [Validation](05_validation.md)
+| 영역 | 기능 | 책임 |
+|---|---|---|
+| ROS2 / Motion | TAKE1~TAKE7, Cartesian 구간, negative J6 guard | MoveIt2/Gazebo 실행 |
+| Planning Scene | 주요 설비 collision 구성 | 로봇 주변 공간 모델 |
+| Jig follower | LIVE Tool TF 기반 고정 상대변환 | Gazebo Jig pose 갱신 |
+| Runtime Source | ROS2, C# JSON Bridge, Replay 선택 | 선택 source의 joint sample 전달 |
+| Virtual Joint | 이름·단위·axis/sign mapping | 기존 Unity J1~J6 local rotation |
+| Command / Status | 기존 ROS2 명령 JSON과 응답 | GUI와 controller 사이 계약 |
+| Workcell | ExternalFr5 입력, dwell, SMT, Finish | 동일 Jig의 공정 소유권 |
+| Camera | 수동 전환, Main 복귀, 시간 기반 sequence, Follow | 관찰 및 Game View |
+| Recording | FHD 1080p30 Recording 구성 완료 | H.264 MP4 출력 설정 |
+| Validation | Python MDH, C# FK, 좌표·축·오차 비교 | 독립 계산과 결과 기록 |
 
-## 기능 Matrix
+## Joint Feedback
 
-| 영역 | 기능 | 상태 |
-|:---|:---|:---:|
-| Gazebo | FR5 Workcell / Controller | PASS |
-| MoveIt2 | Planning Scene / Joint / Cartesian | PASS |
-| Motion | TAKE1~TAKE7 | PASS |
-| Motion | TAKE8 | OUT OF SCOPE |
-| Motion | Negative-J6 Guard | PASS |
-| Jig | LIVE TF rigid follower | PASS |
-| Unity | ROS2 JointState Sync | 구현 완료 |
-| Unity | Source / Finish Magazine | 구현 완료 |
-| Unity | Jig Ownership | 구현 완료 |
-| Unity | SMT Process | 구현 완료 |
-| Unity | Camera 10-shot switching | PASS |
-| Unity | Cinematic Follow | 구현 완료 · Play Mode 시점 전환 확인 |
-| Unity | Recorder 5.1.7 | FHD 1080p30 설정 완료 |
-| Unity | Recorder MP4 sample | 검증 예정 |
-| GUI | Workcell Status Text | PASS (Scene Verify) |
-| GUI | STOP single listener | PASS |
-| GUI | 96 Button Audit | 구조 확인 |
-| ROS2↔Unity | Live JointState E2E | 최종 통합 검증 예정 |
-| TAKE | Unity `RUN_TAKE` Backend | 후속 통합 단계 |
-| SDK | Read-only Feedback 구조 | 구현 완료 |
-| Actual FR5 | Hardware E2E | 실제 장비 검증 예정 |
+`/joint_states`의 `joint1~joint6`를 이름으로 찾고 radian을 degree로 변환합니다.
+선택된 source만 RuntimeSync에서 적용하며 기존 joint axis/sign을 재정의하지 않습니다.
 
-## FR5 SDK 중간 시연 데모
+## Command / Status
 
-Digital Twin 이전 단계에서 FR5 SDK 교육을 기반으로 실제 Robot Control Demo를 구성했습니다.
+Simulation 명령 topic은 `/fr5/unity_command`, 응답은 `/fr5/command_status`입니다.
+Backend는 MOVE_J, HOME, RESET, STOP과 네 Gripper 명령을 처리합니다.
+STOP의 hold trajectory는 실제 장비의 비상정지와 다른 기능입니다.
 
-| 시연 | 보존 근거 |
-|:---|:---|
-| 메뉴 1 칵테일 제조 | Demo 문서 / 이미지 / MP4 |
-| 메뉴 2 칵테일 제조 | Demo 문서 / 이미지 / MP4 |
-| Pick & Place | Demo 문서 / 이미지 / MP4 |
-| 제어 Source | Lua script |
-| Position / Reference | Point DB / DIO reference |
+## Workcell
 
-이 단계의 목적은 현재 Digital Twin 기능을 중복 설명하는 것이 아니라, **SDK 기반 실제 Robot Control 경험이 이후 ROS2·Gazebo·MoveIt2·Unity 구조로 확장됐음을 보여주는 것**입니다.
+- Source Slot01~07과 Finish `filledSlots[]`를 별도 관리.
+- `TryAcceptFr5InsertedJig`로 동일 Jig를 명시적으로 인계.
+- 3.0초 dwell 후 현재 위치에서 Conveyor01 출구 방향으로 이송.
+- 공통 `0.15 m/s` 선속도; Mounter/Inspection 체류시간 보존.
+- ExternalFr5 모드에서 자동 Jig 생성·자동 다음-cycle 시작 차단.
+- Finish Lift world-Y 정렬과 무회전 수평 삽입.
+- runtime Jig를 숨긴 뒤 해당 filledSlot만 표시.
 
-초기 제어 프로젝트: [`demos/01_fr5_sdk_cocktail_robot_demo`](../demos/01_fr5_sdk_cocktail_robot_demo/)
+## UI와 Camera
 
-## ROS2 / Gazebo / MoveIt2
+상태 Text의 주기 제한·값 cache·deadband로 잦은 재표시를 억제했습니다.
+Camera Director/Follow는 로봇·SMT 명령을 호출하지 않고,
+기존 RenderTexture UI와 별도 Game View 출력을 관리합니다.
 
-### Gazebo Workcell
+## 수학 검증
 
-FR5 Robot, Robot Table, Magazine, Magazine Conveyor, Jig Place Conveyor, Jig Inventory를 하나의 Simulation Workcell로 구성했습니다. Robot Base를 고정하고 표현 문제를 해결하기 위해 Robot Geometry를 바꾸지 않았습니다.
+Python canonical MDH와 C# FK를 독립 구현하고 position/rotation tolerance로 비교합니다.
+transform order 및 frame 정의를 검증 항목으로 다루며, 서로 다른 계산 결과를 일치한다고 가정하지 않습니다.
 
-### MoveIt Planning Scene
-
-Gazebo Facility와 대응하는 Collision Object를 MoveIt Planning Scene에 구성했습니다. Allowed Collision Matrix는 필요한 예외만 허용합니다.
-
-### Slot01~07 One-Take
-
-```text
-Gripper Open
-→ PREGRASP / PICK
-→ Gripper Close
-→ Extract
-→ Carry
-→ Pre-Insert
-→ Straight Insert
-→ Gripper Open
-→ Retreat
-→ Conveyor
-```
-
-통합 모션 시퀀스:
-
-```text
-src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
-```
-
-### Cartesian Motion
-
-직선성 자체가 기능 요구사항인 구간에 Cartesian Path를 사용했습니다.
-
-- Pick 직전 접근
-- Magazine Extract
-- Pre-Insert → Insert
-- Release 후 Retreat
-
-### Negative J6 Guard
-
-끝점만 정상인 trajectory가 중간에 다른 Wrist Branch로 넘어가는 문제를 막기 위해 전체 Point를 검사합니다.
-
-```text
-for every trajectory point:
-    J6 < 0
-```
-
-### Jig Rigid Follower
-
-Attach 시 Tool-to-Jig relative pose를 저장하고 LIVE TF를 사용해 Carry 구간에서 Jig가 Tool을 따라가도록 했습니다.
-
-## Unity Digital Twin
-
-### Joint Runtime Sync
-
-```text
-/joint_states
-→ scr_FR5Ros2JointStateClient
-→ scr_FR5RuntimeSyncManager
-→ scr_VirtualJointController
-→ J1~J6
-```
-
-### Source / Finish Magazine
-
-```text
-Source Slot01~07 : Jig
-Source Slot08    : EMPTY
-Finish Magazine  : 완료 Jig 저장
-```
-
-### Jig Visual Ownership
-
-```text
-Source
-→ Carried
-→ Runtime SMT
-→ Finish
-```
-
-### SMT Process
-
-```text
-Conveyor01
-→ Mounter
-→ Inspection
-→ Conveyor02
-→ Unloader
-→ Finish Magazine
-```
-
-Translation은 공통 `0.15 m/s` 기준으로 계산하고 Process dwell과 분리했습니다.
-
-## Unity Camera / Recording
-
-### Camera Shot
-
-| Key | Shot |
-|:---:|:---|
-| `1` | FR5 Cell Wide |
-| `2` | Source Magazine |
-| `3` | Jig Insert |
-| `4` | Mounter |
-| `5` | Inspection |
-| `6` | Conveyor02 |
-| `7` | Unloader |
-| `8` | Top Overview |
-| `9` | FR5 Close-up |
-| `0` | Cinematic Follow |
-| `` ` `` | Main Camera |
-
-Play Mode에서 Shot 전환 자체는 확인했습니다. 최종 framing은 ROS2 Live 촬영 시 실제 동작을 보면서 조정합니다.
-
-### Recorder
-
-- Package: `com.unity.recorder@5.1.7`
-- Source: Game View
-- Resolution: FHD 1080p
-- Aspect: 16:9
-- Encoder: Unity Media Encoder
-- Codec: H.264 MP4
-- Quality: High
-- Frame: Constant 30 FPS
-- Audio: OFF
-- Output: `Project/Recordings`
-
-실제 5~10초 샘플 영상은 최종 촬영 단계에서 생성·재생을 확인할 예정입니다.
-
-## GUI / UI 구성 점검
-
-- STOP listener 1개
-- Workcell Status Text binding
-- 기술 고유명사 `FR5`, `ROS2`, `SDK`, `TCP`는 영문 유지
-- 신규 상태/공정 사용자 문구는 한국어 중심
-- Button 96개 구조 점검
-- Missing Target / Method / Script = 0
-- Slot01~08 / OneTakeAll 9개 zero persistent listener는 Runtime `AddListener` trace 필요
-
-## FR5 SDK / Robot Interface
-
-실제 Robot 연동은 다음 순서를 기본으로 합니다.
-
-```text
-Simulation
-→ Read-only Feedback
-→ Command Path
-→ Actual Robot Validation
-```
-
-Simulation 결과를 Hardware PASS로 승격하지 않습니다.
+[데이터 흐름](04_data_flow.md) · [검증](05_validation.md) · [핵심 코드](12_script_reference.md)
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

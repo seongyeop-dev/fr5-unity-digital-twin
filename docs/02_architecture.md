@@ -2,173 +2,87 @@
 
 # 02. 시스템 아키텍처
 
-> 각 계층이 서로의 책임을 대신하지 않도록 **Motion / Physics / Transport / Visualization / Hardware Interface**를 분리했습니다.
+## 전체 시스템
 
-[문서 목차](README.md) · [프로젝트 README](../README.md) · [Data Flow](04_data_flow.md) · [Deployment](14_deployment_and_handoff.md)
-
-## 핵심 요약
-
-| 계층 | 책임 |
-|:---|:---|
-| FAIRINO FR5 / SDK | 실제 Robot State / Command |
-| ROS2 | JointState, Command, Status, TF |
-| MoveIt2 | IK, Planning, Collision, Trajectory |
-| Gazebo | Physics, Controller, Workcell |
-| Unity | Digital Twin, GUI, Process, Camera |
-| Recorder | Unity clean shot 영상 출력 |
-
-## 전체 연결 구조
+FR5 SDK로 Robot·Gripper·DIO·Lua sequence를 제어한 [Cocktail Robot Demo](../demos/README.md)의 경험을 바탕으로,
+Simulation과 Digital Twin의 계산·입력·표시 책임을 분리했습니다.
 
 ```mermaid
 flowchart LR
-    subgraph HW["Hardware Stage"]
-        FR5["FAIRINO FR5"]
-        SDK["FR5 SDK"]
+    EXP["Actual FR5 / Cocktail Demo"] -. "설계 경험" .-> DT
+    subgraph SIM["ROS2 Simulation"]
+        T["TAKE Master"] --> M["MoveIt2"]
+        M --> C["ros2_control"] --> G["Gazebo"]
     end
-
-    subgraph ROS["Ubuntu ROS2 Runtime"]
-        BR["Robot / Command Bridge"]
-        MOVE["MoveIt2"]
-        GZ["Gazebo Sim 8"]
-        CTRL["ros2_control"]
-        TF["TF / JointState"]
-        TCP["ROS-TCP Endpoint"]
+    G --> J["/joint_states"] --> TCP["ROS-TCP Endpoint"]
+    subgraph DT["Unity Digital Twin"]
+        S["Runtime Source"] --> Y["Runtime Sync"] --> V["Virtual Joint"]
+        IN["외부 Jig 입력"] --> P["SMT Process / Finish"]
+        Y --> UI["Runtime / Workcell UI"]
+        P --> UI
+        CAM["Camera Director / Follow"] --> GV["Game View / Recorder"]
     end
-
-    subgraph U["Windows Unity Runtime"]
-        CLIENT["ROS2 JointState Client"]
-        SYNC["RuntimeSyncManager"]
-        JOINT["VirtualJointController"]
-        PROC["Workcell / SMT Process"]
-        GUI["GUI / Status"]
-        CAM["Portfolio Camera / Recorder"]
-    end
-
-    FR5 -.-> SDK
-    SDK -.-> BR
-    BR <--> MOVE
-    MOVE <--> GZ
-    GZ <--> CTRL
-    CTRL --> TF
-    TF --> TCP
-    TCP --> CLIENT
-    CLIENT --> SYNC
-    SYNC --> JOINT
-    PROC --> GUI
-    CAM --> GUI
+    TCP --> S
 ```
 
-실선은 현재 Simulation/Unity에서 구성된 주 경로, 점선은 Actual Robot 검증 단계입니다.
+| 계층 | 입력 | 출력 / 역할 |
+|---|---|---|
+| MoveIt2 | joint state, 목표 pose, Planning Scene | 검사된 joint/Cartesian trajectory |
+| Gazebo / ros2_control | trajectory | Simulation state, joint feedback |
+| ROS-TCP | ROS topic | Unity 메시지 전달 |
+| RuntimeSync | 선택된 pose source | Virtual Joint에 유효한 joint degree 적용 |
+| Workcell | 명시적으로 인계한 Jig | SMT 이동·처리·Finish 표시 |
+| Camera | shot 선택, 관찰 target | Camera Transform 및 Game View |
 
-## 책임 경계
+## Unity 내부 Runtime 구조
 
-### ROS2
+`scr_FR5RuntimeSyncManager`는 `IFR5RuntimePoseSource` 계약으로 source를 다룹니다.
+ROS2 client, JSON Bridge client, Replay는 입력 생산 방식만 다르고 joint 적용은 기존 `scr_VirtualJointController`가 맡습니다.
 
-- `/joint_states`
-- `/fr5/unity_command`
-- `/fr5/command_status`
-- TF
-- ROS-TCP Network transport
-- Command / Status 전달
+명령 계층은 `scr_FR5UICommandRouter`와 `scr_FR5Ros2CommandPublisher`,
+상태 수신 계층은 `scr_FR5Ros2CommandStatusClient`입니다.
+`EquipmentProcessSequenceController`는 외부 Jig 입력 API를 갖는 별도 공정 실행기입니다.
 
-### MoveIt2
+JointState에는 Jig GameObject 소유권이나 공정 시작 의미를 넣지 않습니다.
+Camera Follow는 target을 읽고 자신의 Camera만 움직입니다.
 
-- IK
-- Joint Goal
-- Cartesian Path
-- Planning Scene
-- Collision Check
-- Trajectory 생성/실행
+[Unity Runtime Script 구조](09_unity_digital_twin.md)
 
-### Gazebo
-
-- FR5 Workcell Physics
-- Arm / Gripper Controller
-- Jig Model / Conveyor
-- `/clock`
-- Simulation execution
-
-### Unity
-
-- JointState 시각 반영
-- Runtime 입력 소유권 관리
-- Source / Finish Magazine
-- Jig Ownership
-- SMT Process
-- GUI
-- Portfolio Camera / Recording
-
-## ROS2 / Gazebo / MoveIt2 구조
+## Mathematical Validation 구조
 
 ```mermaid
-flowchart TB
-    M["Final Motion Master"] --> PS["Planning Scene Check"]
-    PS --> PLAN["Joint / Cartesian Planning"]
-    PLAN --> GUARD["Trajectory Guard<br/>Negative J6"]
-    GUARD --> EXEC["MoveIt Execution"]
-    EXEC --> CTRL["ros2_control"]
-    CTRL --> GZ["Gazebo FR5"]
-    GZ --> JS["/joint_states"]
+flowchart TD
+    J["동일 Joint Case"] --> P["Python MDH FK"]
+    J --> C["Unity C# FK"]
+    P --> M["Coordinate Mapping / case pairing"]
+    C --> M
+    M --> V["scr_FKValidator"]
+    V --> E["Position / Rotation Error"]
+    E --> R["Validation Report"]
 ```
 
-Gazebo에 설비가 보인다는 사실과 MoveIt이 해당 설비를 Collision Object로 알고 있다는 사실은 다릅니다. 주요 Facility를 별도 Planning Scene Object로 등록했습니다.
+Python canonical convention과 C# chain의 transform order 차이는 비교의 전제에 포함합니다.
+raw frame, Unity frame, Gazebo/MoveIt world offset을 같은 변환으로 취급하지 않습니다.
 
-## Unity 내부 구조
+## Deployment 구조
 
-```mermaid
-flowchart TB
-    ROSJS["ROS2 /joint_states"] --> CLIENT["scr_FR5Ros2JointStateClient"]
-    SDKFB["SDK Feedback"] -.-> SYNC["scr_FR5RuntimeSyncManager"]
-    CLIENT --> SYNC
-    MANUAL["Manual / Replay"] -.-> SYNC
-    SYNC --> VJC["scr_VirtualJointController"]
-    VJC --> FR5["Unity FR5 J1~J6"]
+| 저장소 / 환경 | 구성 |
+|---|---|
+| 본 저장소 / Windows | Unity 핵심 Runtime, Python validation, C# read-only Bridge, 문서 |
+| [ROS2 저장소](https://github.com/seongyeop-dev/fr5_ros2_ws/tree/feat/fr5-gazebo-jig-attach-detach) / Ubuntu | Workcell, MoveIt2, controller, TAKE script, ROS-TCP Endpoint |
+| Cocktail Demo | 실제 FR5 SDK 제어 source와 시연 자료 |
 
-    UI["Unity UI"] --> ROUTER["scr_FR5UICommandRouter"]
-    ROUTER --> PUB["scr_FR5Ros2CommandPublisher"]
-    PUB --> CMD["/fr5/unity_command"]
-```
-
-`RuntimeSyncManager`가 Joint Pose의 현재 owner를 선택하고, 비활성 Source가 같은 Transform을 동시에 쓰지 않도록 합니다.
-
-## Workcell 구조
-
-```mermaid
-flowchart LR
-    SRC["Source Magazine"] --> OWN["Jig Ownership"]
-    OWN --> PROC["EquipmentProcessSequenceController"]
-    PROC --> FIN["Finish Magazine"]
-    PROC --> STATUS["Workcell Status UI"]
-```
-
-Unity는 Robot trajectory를 다시 계산하지 않고 FR5 이후 공정과 시각 상태를 관리합니다.
-
-## Portfolio Camera 구조
-
-```mermaid
-flowchart TB
-    MAIN["Main Camera"] --> D["FR5PortfolioCameraDirector"]
-    P["Process Camera 01~07"] --> D
-    X["Top / Close-up / Follow"] --> D
-    D --> GV["Single Game View Output"]
-    D --> AL["Single AudioListener"]
-    GV --> REC["Unity Recorder 5.1.7"]
-```
-
-기존 RenderTexture Camera 4개는 UI 용도로 유지하며 Portfolio Shot switching의 enable/disable 대상과 분리합니다.
-
-## Deployment Topology
-
-```mermaid
-flowchart LR
-    LAP["Ubuntu Laptop<br/>Gazebo / MoveIt / RViz"] -->|ROS-TCP| WIN["Windows PC<br/>Unity Digital Twin"]
-    GH["GitHub"] --> LAP
-    GH --> WIN
-    HW["Actual FR5"] -. SDK .-> WIN
-```
-
-현재 Laptop Simulation Runtime은 PASS, Windows Unity Live Integration과 Actual Robot은 별도 검증 상태입니다.
+이 저장소는 개발 Scene 전체를 자동 복제하는 installer가 아닙니다.
+기존 tracked Unity 파일을 보존하면서 핵심 누락 소스를 보완한 구성은 [Project Structure](07_project_structure.md)에 설명합니다.
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

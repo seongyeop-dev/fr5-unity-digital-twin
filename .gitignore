@@ -35,3 +35,15 @@ Assets/Model/FR5/CAD/*.rar
 # Unity local recovery / temporary backups
 Assets/_Recovery/
 *.bak_*
+
+# Portable FR5 source bundle (keep the standalone bridge project, not build products).
+!/BridgeTools/FR5_CSharp_Bridge/FR5_CSharp_Bridge/FR5_CSharp_Bridge.csproj
+/BridgeTools/**/bin/
+/BridgeTools/**/obj/
+/BridgeTools/**/log/
+/BridgeTools/**/logs/
+/Python/**/__pycache__/
+/Python/**/.pytest_cache/
+/Python/venv/
+/Python/.venv/
+/Python/Phase1_Kinematics/GroundTruth/output/

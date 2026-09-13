@@ -57,7 +57,7 @@ J6 < 0 for every trajectory point
 
 ## 4. Jig Carry 표현
 
-**문제**: Set Pose 방식은 Tool-Jig 관계를 잃습니다.
+**문제**: 목표점으로 직접 배치하는 방식은 Tool-Jig 관계를 잃습니다.
 
 **결정**: Tool-to-Jig relative pose + LIVE TF follower.
 
@@ -83,7 +83,7 @@ J6 < 0 for every trajectory point
 Source → Carried → Runtime → Finish
 ```
 
-**결과**: 한 시점에 한 Owner만 Jig를 표시합니다.
+**결과**: 각 실행 영역에서 한 시점의 표현 owner를 구분합니다. ROS2 follower와 Unity external Jig 입력은 별도 경계이고, Unity Finish는 runtime Jig hide 후 placeholder를 표시합니다.
 
 ## 7. Source / Finish Magazine 역할 혼재
 
@@ -114,28 +114,20 @@ duration = distance / speed
 **결정**: Unloader rotation을 저장해 접근/삽입 동안 유지합니다.
 
 ```text
-Quaternion.Angle(start, end) <= 0.01°
+RotationDriftDegrees(start, end) <= 0.01 degree
 ```
 
-## 10. Simulation PASS / Actual Robot PASS 구분
+## 10. 실제 제어 경험과 Simulation 책임
 
-**결정**:
+**결정**: Cocktail Robot Demo의 FR5 SDK/Gripper/DIO/Lua 경험을 Digital Twin 설계에 반영하되, 실물 Demo와 ROS2/Gazebo 시뮬레이션 결과를 각 실행 환경에 대응시킵니다.
 
-```text
-Simulation
-→ Unity Live
-→ SDK Read-only
-→ Actual Command
-→ Safety
-```
-
-**결과**: 문서와 구현에서 각 PASS를 별도 상태로 기록합니다.
+**결과**: Digital Twin에서는 feedback source, simulation command, SMT 공정과 Camera를 분리했습니다.
 
 ## 11. 개발 PC / Laptop 환경 분리
 
 **문제**: 개발 PC build artifact를 노트북에 복사하면 재현성을 보장하기 어렵습니다.
 
-**결정**: Workspace ?? / SHA를 확인하고 Laptop에서 fresh build.
+**결정**: Workspace revision / SHA를 확인하고 Laptop에서 fresh build.
 
 **결과**: 노트북 Ubuntu 환경에서 동일한 TAKE1~TAKE7 시뮬레이션을 다시 실행해 동작을 확인했습니다.
 
@@ -169,7 +161,7 @@ Simulation
 
 **결정**: Scene Button을 read-only로 전수 수집하고 Target / Method / listener count를 기록했습니다.
 
-**결과**: Button 96개, Missing Target/Method/Script 0, STOP listener 1. Reset 2개와 TAKE/Slot Runtime AddListener는 추가 ?? ?? ?? 대상으로 남겼습니다.
+**결과**: Button 96개를 대상으로 Target/Method/Script와 STOP 단일 entry point를 검사했습니다. Persistent listener와 Runtime AddListener를 구분하여 버튼 이름만으로 연결 성공을 판단하지 않았습니다.
 
 ## 16. SDK 중간 시연과 Digital Twin 통합
 
@@ -187,10 +179,24 @@ Simulation
 - 한 계층이 다른 계층의 책임을 대신하지 않음
 - Jig는 한 시점에 하나의 Owner
 - Simulation / Unity / Hardware PASS 분리
-- 실패 경로보다 Final PASS 기준을 기준 구성로 유지
+- 확인한 실행 경로와 검사 기준을 기준 구성으로 유지
 - Runtime performance 문제와 Motion 문제를 분리
 - Portfolio presentation도 실제 검증 범위를 넘겨 과장하지 않음
 
+## 17. 독립 FK 비교
+
+**결정**: Python MDH와 Unity C# FK를 별도로 계산하고 좌표계·축 방향·오차와 tolerance를 비교했습니다.
+
+**결과**: transform order와 frame 정의의 차이를 확인 가능한 검증 항목으로 다룹니다. 현재 두 구현의 완전 일치를 전제하지 않습니다.
+
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

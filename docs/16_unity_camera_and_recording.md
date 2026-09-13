@@ -96,7 +96,7 @@ Camera sequence는 Robot / Conveyor / RUN_TAKE 명령을 호출하지 않습니�
 - target null safe
 - Camera Transform만 변경
 
-Robot, Jig, Process Transform을 Camera가 수정하지 않습니다.
+Robot, Jig, Process Transform을 Camera가 수정하지 않습니다. 개발 Scene의 Follow target은 Tool_TCP이며, 공정 event마다 Jig를 자동 선택하는 코드로 해석하지 않습니다.
 
 ## Scene Configuration Verify
 
@@ -113,7 +113,7 @@ Workcell Text bound
 
 Play Mode에서 `1~9`, `0`, Main 전환에 문제가 없는 것을 확인했습니다.
 
-최종 Camera pose/FOV는 실제 ROS2 Integration 촬영 시 Jig와 Arm의 실제 Runtime motion을 보며 조정합니다.
+Camera pose/FOV는 개발 Scene의 촬영 구성이며 Runtime joint mapping과 공정 배치에서 분리합니다.
 
 ## Unity Recorder
 
@@ -143,7 +143,7 @@ com.unity.recorder@5.1.7
 
 Game View editor viewport가 1920×1080이 아니어도 Recorder가 녹화 시 target resolution을 적용합니다.
 
-실제 5~10초 MP4 sample은 최종 촬영 단계에서 생성·재생을 확인할 예정입니다.
+Unity Recorder와 Game View 기반 FHD 1080p30 촬영 구성을 완료했습니다.
 
 ## Workcell Status UI
 
@@ -188,36 +188,10 @@ Scene 구성 점검:
 | Missing Method | 0 |
 | Missing Script | 0 |
 
-### 추가 ?? ?? ?? 대상
+Persistent UnityEvent와 Runtime AddListener는 별도로 검사했습니다.
+버튼 표시나 persistent listener 수만으로 command 실행을 판단하지 않습니다.
 
-2 listeners:
-
-```text
-Btn_ResetToolOffset
-Btn_RESET VIEW
-```
-
-wrapper와 `OnClickReset()`이 실제 중복 호출인지 source body 확인 후 판단합니다.
-
-0 persistent listeners:
-
-```text
-Btn_OneTakeAll
-Btn_Slot01
-Btn_Slot02
-Btn_Slot03
-Btn_Slot04
-Btn_Slot05
-Btn_Slot06
-Btn_Slot07
-Btn_Slot08_EMPTY
-```
-
-이 버튼들은 Runtime `AddListener` 가능성이 있으므로 Edit Mode persistent listener 수만으로 “연결 끊김”으로 판정하지 않습니다.
-
-`enableTakeDispatch=false` 기본값은 유지하며 Backend RUN_TAKE가 구현되기 전 실제 TAKE 실행 완료로 표시하지 않습니다.
-
-## 촬영 계획
+## 촬영 구성
 
 ```mermaid
 flowchart LR
@@ -247,9 +221,7 @@ flowchart LR
 - Windows Unity
 - 동일 JointState 동작
 
-### Hardware Capture
-
-Actual FR5 SDK 연결 후 별도 촬영합니다.
+실제 FR5 영상과 제어 source는 [Cocktail Robot Demo](../demos/README.md)의 자료에 연결합니다.
 
 ## 검증 상태
 
@@ -262,11 +234,18 @@ Actual FR5 SDK 연결 후 별도 촬영합니다.
 | Follow code/static | PASS |
 | Recorder install | PASS |
 | Recorder config | PASS |
-| MP4 sample | 최종 촬영 단계에서 확인 예정 |
-| final framing | 촬영 시 최종 조정 예정 |
-| ROS2 Live filming | 최종 통합 촬영 예정 |
-| Actual Robot filming | 실제 장비 확보 후 진행 |
+| Recording | FHD 1080p30 Recording 구성 완료 |
+| final framing | 촬영 기능 구성 완료 |
+| ROS2 Runtime 표시 | JointState 기반 Runtime 연동 구조 구현 |
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

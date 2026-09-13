@@ -2,90 +2,49 @@
 
 # 06. 프로젝트 범위
 
-> 구현한 범위와 아직 검증하지 않은 범위를 명시해 포트폴리오의 기술적 경계를 분명하게 합니다.
+## 결과를 설명하는 기준
 
-[문서 목차](README.md) · [프로젝트 README](../README.md)
+본 프로젝트는 FR5 motion 시뮬레이션, Unity Runtime/Interface,
+독립 FK 비교, SMT 공정과 촬영 구성을 다룹니다.
+실제 FR5 SDK 제어 경험은 [Cocktail Robot Demo](../demos/README.md)에 정리했습니다.
 
-## 범위 요약
+| 영역 | 포함 기능 |
+|---|---|
+| Simulation | ROS2 Jazzy, Gazebo Sim 8, MoveIt2, ros2_control |
+| Motion | TAKE1~TAKE7, Planning Scene, negative J6, LIVE TF follower |
+| Joint Interface | JointState와 Runtime Source, 기존 J1~J6 mapping |
+| Workcell | 외부 Jig 입력, Source/Finish 구분, dwell, 공통 이송, Finish 삽입 |
+| Mathematics | Python MDH, C# FK, 좌표·축·오차·허용치 |
+| Presentation | 운영 UI, Camera Director/Follow, FHD 1080p30 Recording |
+| SDK Interface | 별도 C# read-only feedback / mock Bridge |
 
-| 영역 | 포함 |
-|:---|:---|
-| Motion | Gazebo + MoveIt2 Slot01~07 Pick & Place |
-| Physics | FR5 Workcell / ros2_control / Jig |
-| Digital Twin | Unity Joint Sync / GUI / Process |
-| Workcell | Source / Finish Magazine / SMT |
-| Visualization | 10-shot Camera / Follow / Recorder |
-| Interface | ROS2 Command / Status / SDK 구조 |
-| Deployment | Laptop Simulation Runtime |
-| Hardware | Interface 구조 포함, 실제 장비 End-to-End 검증은 추후 진행 |
+## 설계 경계
 
-## 포함 범위
+- TAKE8은 UNUSED이며 Source Slot08은 EMPTY입니다.
+- Source Magazine과 Finish Magazine을 합치지 않습니다.
+- ROS2 JointState는 관절 feedback이지 SMT 시작 event가 아닙니다.
+- Unity external API는 호출자가 전달한 Jig를 사용하며 자체 복제하지 않습니다.
+- Camera는 관찰만 수행합니다.
+- Simulation STOP hold와 실제 장비 비상정지는 같은 기능이 아닙니다.
+- Python canonical MDH와 C# FK의 차이는 비교 대상이며 완전 정합 결과로 일반화하지 않습니다.
 
-### Robot / Motion
+## 공개 소스 범위
 
-- FR5 Gazebo Simulation
-- Planning Scene
-- Joint / Cartesian Motion
-- TAKE1~TAKE7
-- Jig follower
-- Negative-J6 Guard
-- Conveyor release
+Unity 핵심 누락 Runtime과 대응 .meta, Python validation subset,
+최소 Bridge source/project/config를 제공합니다.
+기존 tracked 파일·Scene과 [Cocktail Demo](../demos/README.md)는 보존합니다.
+ROS2 source는 별도 저장소에 두고 이 저장소에 중복 수록하지 않습니다.
 
-### Unity Digital Twin
-
-- J1~J6 Runtime Sync
-- Source / Finish Magazine
-- Jig Ownership
-- SMT Process
-- External FR5 Input
-- Workcell Status GUI
-- Camera Director / Follow
-- Unity Recorder
-
-### Robot Interface
-
-- FR5 SDK Integration architecture
-- Read-only Feedback 우선
-- ROS2 legacy Command Publisher / Listener
-- Backend Status
-- Runtime 입력 분리
-
-## 의도적으로 제외 / 보수적 유지
-
-- TAKE8 / Slot08 Jig는 운영 제외
-- Unity를 Robot Physics Simulator로 사용하지 않음
-- Simulation PASS를 Actual FR5 PASS로 표현하지 않음
-- 실제 Speed/Safety는 Hardware 검증 전 확정하지 않음
-- `RUN_TAKE`를 Backend 미구현 상태에서 실행 완료 기능처럼 표시하지 않음
-- Camera framing은 실제 동작 촬영 전에 최종 조정
-
-## 주요 해결 문제
-
-| 문제 | 해결 |
-|:---|:---|
-| 높은 Slot 접근 간섭 | PREGRASP + Cartesian Approach |
-| Wrist Branch 전환 | Negative-J6 Guard |
-| Gazebo / MoveIt 좌표 차이 | Planning Scene 변환 |
-| Carry Jig 불연속 | LIVE TF rigid follower |
-| Jig 중복 표시 | Ownership State |
-| SMT 속도 불일치 | 공통 World-space speed |
-| Finish 회전 | Rotation 유지 Straight Insert |
-| Laptop RTF 저하 | true headless |
-| Camera 중복 출력 | Camera Director |
-| UI STOP 중복 | single listener |
-
-## 현재 남은 통합
-
-```mermaid
-flowchart LR
-    A["Unity Recorder<br/>Sample MP4"] --> B["ROS2 ↔ Unity<br/>Live JointState"]
-    B --> C["Final Camera<br/>Framing / Shoot"]
-    C --> D["RUN_TAKE<br/>Backend Integration"]
-    D --> E["Actual FR5<br/>Hardware Validation"]
-```
-
-큰 구조나 검증된 Motion을 다시 설계하는 단계는 종료했고, 현재는 Integration과 최종 촬영 단계입니다.
+[Project Structure](07_project_structure.md) · [Validation](05_validation.md)
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

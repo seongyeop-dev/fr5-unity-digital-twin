@@ -1,61 +1,104 @@
 <a id="top"></a>
 
-# 05. 검증 결과
+# 05. Mathematical / Simulation / Unity Validation
 
-> 이 프로젝트의 핵심 원칙은 **PASS의 범위를 계층별로 분리하는 것**입니다. Static PASS, Simulation PASS, Unity Live PASS, Actual Robot PASS는 서로 다른 상태입니다.
+독립 계산, 시뮬레이션 실행, UI·공정 검증의 결과를 각 입력과 환경에 맞춰 설명합니다.
+아래 실행 수치와 회귀 결과는 개발 과정에 기록한 결과입니다.
 
-[문서 목차](README.md) · [프로젝트 README](../README.md) · [Motion Validation](11_motion_and_slot_validation.md)
+## Python MDH / FK Validation
 
-## 검증 방법
+FR5 모델은 Python MDH Forward Kinematics와 Unity C# FK를 별도로 구현해
+joint case, 좌표계, 축 방향, position/rotation error를 비교하는 검증 구조를 사용했습니다.
 
-```mermaid
-flowchart LR
-    I["Inspect"] --> M["Modify"]
-    M --> S["Static Check"]
-    S --> R["Runtime / Simulation"]
-    R --> V["Visual / Audit"]
-    V --> L["Lock"]
-```
-
-이미 PASS한 Motion/Transform은 다음 기능 개발 때문에 임의 재튜닝하지 않았습니다.
-
-## 최종 Validation Matrix
-
-| 계층 | 검증 | 결과 |
-|:---|:---|:---:|
-| Git / Source | Laptop Local = origin | PASS |
-| Build | fresh `colcon build --symlink-install` | PASS |
-| Gazebo | Workcell / controller / `/clock` / `/joint_states` | PASS |
-| MoveIt2 | Planning Scene / Cartesian / Collision | PASS |
-| Planning Scene | Facility object 4개, unexpected 0 | PASS |
-| Motion | TAKE1→TAKE7 | PASS |
-| Motion | TAKE8 | OUT OF SCOPE |
-| Trajectory | Negative J6 Guard | PASS |
-| Jig | LIVE TF follower | PASS |
-| Performance | headless RTF `0.998` | PASS |
-| Performance | headless + MoveIt2 RTF `0.997` | PASS |
-| Unity | Camera 01~10 switching | PASS |
-| Unity | Game View output 1 | PASS |
-| Unity | AudioListener 1 | PASS |
-| Unity | STOP listener 1 | PASS |
-| Unity | Workcell Status Text binding | PASS |
-| Unity | Camera/Follow static regression | PASS |
-| Unity | UI Button 96개 구조 점검 | 구조 확인 |
-| Recorder | Recorder 5.1.7 install | PASS |
-| Recorder | FHD 1080p30 config | PASS |
-| Recorder | 실제 MP4 sample | 검증 예정 |
-| ROS2↔Unity | Live JointState E2E | 검증 예정 |
-| Unity→TAKE | RUN_TAKE / correlation / BUSY / active STOP | 검증 예정 |
-| Actual FR5 | Feedback / Command / Safety | 검증 예정 |
-
-## ROS2 / Gazebo / MoveIt2
-
-통합 모션 시퀀스:
+[MDH table](../Python/Phase1_Kinematics/Python_MDH/fr5_mdh_params.py)는 다음 프로젝트 convention을 정의합니다.
 
 ```text
-src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
+단위: meter, radian
+a     = [0, -0.425, -0.395, 0, 0, 0]
+d     = [0.152, 0, 0, 0.102, 0.102, 0.100]
+alpha = [+pi/2, 0, 0, +pi/2, -pi/2, 0]
+Ai = RotX(alpha) TransX(a) RotZ(theta) TransZ(d)
+T = A1 A2 A3 A4 A5 A6
 ```
-최종 실행 결과:
+
+입력 degree를 radian으로 변환하고 4×4 `T_base_tcp`, position, rotation matrix,
+RPY, case ID, convention, units를 반환합니다.
+RPY 추출은 `Rz(yaw) Ry(pitch) Rx(roll)` 기준이며 특이점 분기를 포함합니다.
+별도 tool calibration transform을 곱하는 모델과 MDH endpoint를 구분합니다.
+
+[공식 프로젝트 case 데이터](../Python/Phase1_Kinematics/Python_MDH/fr5_pose_cases.json):
+
+| Case | jointDegrees |
+|---|---|
+| ZERO | `[0, 0, 0, 0, 0, 0]` |
+| SDK_HOME_CANDIDATE | `[0, -90, 90, -90, -90, 0]` |
+| ROS2_DEMO_MOVEJ | `[0, -60, 90, -90, -90, 0]` |
+| SMALL_SAFE_TEST | `[10, -45, 75, -30, -60, 15]` |
+
+[case runner](../Python/Phase1_Kinematics/GroundTruth/fr5_pose_case_runner.py)가
+JSON/CSV/TXT를 분리해 출력합니다. 생성 결과는 source에 포함하지 않습니다.
+
+## Unity C# FK / Coordinate Validation
+
+```mermaid
+flowchart TD
+    J["Joint Case"] --> P["Python MDH FK"]
+    PARAM["MDH Parameters"] --> P
+    SOLVER["fr5_fk_solver.py"] --> P
+    J --> C["Unity C# FK / scr_FR5Kinematics"]
+    P --> MAP["Coordinate Mapping / case pairing"]
+    C --> MAP
+    MAP --> V["scr_FKValidator"]
+    V --> ERR["Position / Rotation Error"]
+    ERR --> REPORT["Validation Report"]
+```
+
+현재 Python canonical MDH와 C# FK는 transform order가 다릅니다.
+Python의 row별 `Rx → Tx → Rz → Tz`와 C#의 `Rz(j1) → Tz(d1) → Rx(alpha1)` 시작 chain을
+동일하다고 가정하지 않습니다. 개발 중 독립 FK 비교와 축/좌표 검증에 활용한 구조를 설명하며,
+모든 case의 최종 일치나 제조사 Ground Truth와의 동일성을 주장하지 않습니다.
+
+`scr_FR5CoordinateMapper`의 raw→Unity 축 변환은 `(-y, z, x)`입니다.
+이는 Gazebo↔MoveIt world offset 및 설비 정합 변환과 별개입니다.
+`scr_FR5AxisCompareDebugger`는 FK와 Shadow의 right/up/forward를 비교할 수 있도록 출력합니다.
+
+| 측정 | 구현 | 기본 tolerance |
+|---|---|---|
+| position axis | 두 position의 축별 차이, meter | 0.001 m |
+| position magnitude | 위치 오차 벡터 길이 | 0.0015 m |
+| rotation axis | Euler 축별 `Mathf.DeltaAngle`, degree | 0.5 degree |
+| rotation magnitude | Euler 오차 벡터 길이 | 1.0 degree |
+
+rotation magnitude는 quaternion geodesic angle과 다른 척도입니다.
+
+기존 Unity TXT 경로는 Manual Controller의 joint export → Python single runner →
+TCPCompareManager load/map → FKValidator → report writer입니다.
+현재 live Virtual Controller와 legacy Manual Controller는 다른 상태 저장소이므로,
+파일 export가 항상 선택된 live joint를 의미한다고 일반화하지 않습니다.
+
+## Python 테스트와 실행
+
+| 테스트 | 검사 |
+|---|---|
+| [test_fr5_mdh_fk.py](../Python/Phase1_Kinematics/Tests/test_fr5_mdh_fk.py) | canonical 필드, ZERO 기대 position, degree→radian |
+| [test_fr5_pose_cases.py](../Python/Phase1_Kinematics/Tests/test_fr5_pose_cases.py) | 4개 case와 JSON/CSV/TXT export |
+| [test_groundtruth_single_runner_input.py](../Python/Phase1_Kinematics/Tests/test_groundtruth_single_runner_input.py) | 6줄·CSV·공백·잘못된 개수 |
+
+저장소 root에서:
+
+```powershell
+python -m pip install -r Python/requirements.txt
+python -B -m unittest discover -s Python/Phase1_Kinematics/Tests -p "test_*.py"
+python -B Python/Phase1_Kinematics/GroundTruth/fr5_pose_case_runner.py --output-dir "$env:TEMP/FR5_MDH_Results"
+```
+
+테스트는 parser, 계산 계약 및 export를 확인합니다.
+4개 case의 물리적 정확성을 제조사 측정값으로 독립 검증하는 테스트와는 구분합니다.
+
+## ROS2 / Gazebo / MoveIt2 Simulation Validation
+
+[최종 ROS2 branch](https://github.com/seongyeop-dev/fr5_ros2_ws/tree/feat/fr5-gazebo-jig-attach-detach)의
+Master를 사용한 TAKE1~TAKE7 시뮬레이션 결과:
 
 ```text
 FINAL ONE-TAKE TAKE1 -> TAKE7 PASS
@@ -63,140 +106,71 @@ FINAL_MASTER_RETURN_CODE=0
 TAKE1_TO_TAKE7_FINAL_SIMULATION=PASS
 ```
 
-Slot08 Jig는 spawn하지 않고 TAKE8은 운영하지 않습니다.
+| 항목 | 결과 |
+|---|---|
+| 노트북 source 기반 fresh build | PASS |
+| Gazebo / ros2_control / clock / joint_states | 실행 확인 |
+| Joint/Cartesian trajectory와 collision | 검사 및 실행 |
+| Negative J6 trajectory policy | 전체 point 검사 |
+| LIVE Tool TF Jig follower | 상대 pose 유지 |
+| TAKE8 / Source Slot08 | UNUSED / EMPTY |
+| Gazebo headless RTF | 0.998 |
+| headless + MoveIt2 RTF | 0.997 |
 
-### Planning Scene
+## Planning Scene
 
 | Object | Elements |
-|:---|---:|
+|---|---:|
 | `gazebo_fr5_robot_table_v2` | 6 |
 | `gazebo_fr5_magazine_visual_probe` | 46 |
 | `gazebo_fr5_magazine_conveyor_probe` | 7 |
 | `gazebo_fr5_jig_place_conveyor_probe` | 200 |
 
-```text
-OBJECT_COUNT=4
-UNEXPECTED_WORLD_OBJECTS=NONE
-```
+Object 수 4개, unexpected world object 없음으로 기록했습니다.
+Collision primitive와 RViz visual mesh를 구분하며 Robot Base는 이동시키지 않았습니다.
 
-## Laptop Runtime 재현성
+## Unity Scene / UI / Camera Validation
 
-| 항목 | 결과 |
-|:---|:---|
-| Remote parity | PASS |
-| Fresh build | PASS |
-| Master SHA 유지 | PASS |
-| 기존 backup / untracked 보존 | PASS |
+개발 구성에서 Camera 15개(기존 RT 4 + Main 1 + shot 10),
+Game View output 1개, AudioListener 1개, STOP entry point 1개를 확인했습니다.
+Camera switching과 Main 복귀는 Play Mode에서 확인했습니다.
 
-개발 PC의 build artifact를 복사하지 않고 Source에서 fresh build했습니다.
+Button 연결 검사는 persistent listener와 Runtime AddListener를 구분합니다.
+Scene의 Text나 버튼 개수만으로 실제 backend 실행을 판정하지 않습니다.
 
-## Unity Static / Offline Validation
+개발 과정의 static/offline 회귀 기록:
 
-기존 작업에서 다음 검증을 사용했습니다.
+| 영역 | 기록 |
+|---|---:|
+| Workcell Status contract | 114 assertions |
+| ROS / Feedback contract | 171 assertions |
+| Slot regression | 1,070 assertions |
+| SMT regression | 24,241 assertions |
+| Camera / Follow regression | 403 assertions |
 
-| 검증 | 결과 |
-|:---|:---:|
-| Runtime C# static compile | Error 0 |
-| Editor C# static compile | Error 0 |
-| Workcell Status contract | 114 assertions PASS |
-| ROS / Feedback contract | 171 PASS |
-| RUN_TAKE offline regression | 2,527 PASS |
-| Slot regression | 1,070 PASS |
-| SMT regression | 24,241 PASS |
-| Camera / Follow regression | 403 PASS |
-| Korean UI / binding regression | 451 PASS |
+이 회귀 횟수는 개발 과정 기록이며, 공개 subset의 unittest 횟수와 합산하지 않습니다.
 
-이 결과는 코드/계약 검증이며 실제 ROS2 Live 또는 Actual Robot PASS를 의미하지 않습니다.
+## Recording / Runtime Interface
 
-## Unity Scene Configuration Validation
+- FHD 1080p30 Recording 구성 완료.
+- ROS2↔Unity: JointState 기반 Runtime 연동 구조 구현.
+- 외부 Jig API: 동일 Jig, 3초 dwell, 자동 중복 생성 방지.
+- Finish: rotation drift 0.01 degree 이하, Lift world-Y, 수평 삽입과 단일 placeholder 전환.
 
-Portfolio Scene 적용 후 Read-only Verify에서 확인한 기준:
+## Actual FR5 SDK 경험: Cocktail Robot Demo
 
-```text
-15 Cameras
-= 4 RenderTexture Cameras
-+ Main Camera
-+ 10 Portfolio Shot Cameras
-
-Game View output = 1
-AudioListener = 1
-STOP listener = 1
-Workcell Text bound = PASS
-```
-
-Camera switching은 Play Mode에서 `1~9`, `0`, Main fallback 전환을 확인했습니다. 최종 pose/FOV는 실제 ROS2 촬영 시 미세조정합니다.
-
-## UI 구성 검증
-
-Scene 구성 점검에서 사용자 Button 96개를 수집했습니다.
-
-| 항목 | 결과 |
-|:---|---:|
-| 전체 Button | 96 |
-| Persistent listener 1개 | 85 |
-| Persistent listener 0개 | 9 |
-| Persistent listener 2개 | 2 |
-| Missing Target | 0 |
-| Missing Method | 0 |
-| Missing Script | 0 |
-| STOP listener | 1 |
-
-추가 ?? ?? ??가 필요한 항목:
-
-- `Btn_ResetToolOffset`: 2 persistent listeners
-- `Btn_RESET VIEW`: 2 persistent listeners
-- `Btn_OneTakeAll`, `Btn_Slot01~08`: 0 persistent listener — Runtime `AddListener` 여부 별도 확인
-
-Scene 연결 상태 확인과 실제 Runtime 실행 결과를 구분해 기록했습니다.
-
-## Recorder Validation
-
-현재 완료:
-
-- `com.unity.recorder@5.1.7` UPM 설치
-- Movie Clip
-- Game View
-- FHD 1080p
-- 16:9
-- H.264 MP4
-- High
-- Constant 30 FPS
-- Audio OFF
-- `Project/Recordings`
-
-남은 검증:
-
-- 5~10초 sample recording
-- 실제 MP4 존재 / 재생 / 1920×1080 확인
-- 촬영 시 Camera framing 미세조정
-
-## Backend Command / TAKE 경계
-
-| 항목 | 상태 |
-|:---|:---:|
-| Legacy Command Listener | 기존 명령 처리 확인 |
-| `/fr5/command_status` Publisher | Status 발행 구조 확인 |
-| Master `FR5_TAKE=1..7/ALL` | 확인 |
-| Unity Slot selection / mapping | 구현 |
-| `RUN_TAKE` Listener dispatch | 후속 통합 단계 |
-| request/status correlation | 후속 통합 단계 |
-| BUSY / completion lifecycle | 후속 통합 단계 |
-| active Master STOP | 후속 통합 단계 |
-
-## Actual Robot 경계
-
-Actual FR5에서 최종 확인해야 하는 항목:
-
-- FR5 SDK Joint Feedback
-- ROS2 ↔ Actual Joint mapping
-- Unity Joint live sync
-- Actual Command Full Path
-- Speed / Safety
-- 실제 Workcell calibration
-- Emergency / Abort 범위
-
-Simulation PASS와 Hardware PASS를 같은 표기로 사용하지 않습니다.
+실제 FR5 SDK 제어, Robot motion, Gripper, DIO와 Lua motion sequence는
+[Cocktail Robot Demo](../demos/README.md)의 시연과 source로 설명합니다.
+Digital Twin의 시뮬레이션·interface 결과와 실물 Demo의 결과는 각 프로젝트의 실행 환경에 대응시킵니다.
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

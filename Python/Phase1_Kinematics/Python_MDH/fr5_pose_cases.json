@@ -1,0 +1,10 @@
+{
+  "mdhConvention": "RotX(alpha) -> TransX(a) -> RotZ(theta) -> TransZ(d)",
+  "jointUnit": "degree",
+  "cases": [
+    {"caseId": "ZERO", "caseName": "ZERO", "jointDegrees": [0, 0, 0, 0, 0, 0]},
+    {"caseId": "SDK_HOME_CANDIDATE", "caseName": "SDK_HOME_CANDIDATE", "jointDegrees": [0, -90, 90, -90, -90, 0]},
+    {"caseId": "ROS2_DEMO_MOVEJ", "caseName": "ROS2_DEMO_MOVEJ", "jointDegrees": [0, -60, 90, -90, -90, 0]},
+    {"caseId": "SMALL_SAFE_TEST", "caseName": "SMALL_SAFE_TEST", "jointDegrees": [10, -45, 75, -30, -60, 15]}
+  ]
+}

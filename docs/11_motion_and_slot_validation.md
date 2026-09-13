@@ -32,7 +32,7 @@ src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
 | `ALL` | TAKE1→TAKE7 |
 | TAKE8 | 사용하지 않음 |
 
-`--execute`는 Simulation execution을 의미합니다.
+`--execute`는 Simulation execution을 의미합니다. Unity UI 버튼의 backend dispatch와는 별도 실행 진입점입니다.
 
 ## Motion Sequence
 
@@ -99,11 +99,7 @@ ACTION05는 Slot 범위 전체에 하나의 규칙으로 단순화하지 않고 
 
 ## Laptop Final Revalidation
 
-```text
-Laptop HEAD
-
-통합 모션 시퀀스 SHA
-```
+ROS2 source는 [최종 branch](https://github.com/seongyeop-dev/fr5_ros2_ws/tree/feat/fr5-gazebo-jig-attach-detach)에서 관리합니다.
 
 Final result:
 
@@ -130,4 +126,12 @@ flowchart LR
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

@@ -42,7 +42,8 @@ flowchart TB
     F --> M
     M --> C
     C --> G
-    G --> T
+    G --> JS["/joint_states"]
+    JS --> T
     T --> U
     R --> M
 ```
@@ -51,8 +52,8 @@ flowchart TB
 
 개발 PC의 `build/`, `install/`, `log/`를 복사하지 않고 Laptop에서 source 기준으로 fresh build했습니다. 기존 local backup과 untracked 파일은 삭제하지 않고 보존했습니다.
 ## Runtime 구성
-```text
-```
+
+[최종 ROS2 branch](https://github.com/seongyeop-dev/fr5_ros2_ws/tree/feat/fr5-gazebo-jig-attach-detach)의 source를 사용합니다.
 
 ## Gazebo Python Dependency
 
@@ -158,40 +159,22 @@ Motion 기준은 개발 PC에서 검증한 Master를 유지했고 Laptop 성능 
 | Planning Scene | Robot 주변 설비 Collision 구성 |
 | Motion Script | TAKE1~TAKE7 순차 실행 |
 
-## Validation Boundary
+## 실행 결과 요약
 
-현재 PASS:
+노트북 source 기반 build, Gazebo/ros2_control, clock/joint_states, MoveIt2/Planning Scene,
+Slot01~07/Slot08 EMPTY, true headless 및 TAKE1~TAKE7 실행을 확인했습니다.
 
-- Source migration / Git parity
-- Fresh ROS2 build
-- Gazebo / ros2_control
-- `/clock`, `/joint_states`
-- MoveIt2 / Planning Scene
-- RViz 표시
-- Slot01~07 / Slot08 EMPTY
-- true headless
-- TAKE1~TAKE7 execute
-
-다음:
-
-```text
-Laptop Gazebo / MoveIt / RViz
-        ↓ ROS-TCP
-Windows Unity Digital Twin
-        ↓
-동시 화면 / 촬영
-```
-
-그 이후:
-
-```text
-Actual FAIRINO FR5
-        ↓ SDK
-Unity Digital Twin
-```
-
-Simulation PASS, Unity Live Integration PASS, Actual Robot PASS는 서로 다른 검증 상태입니다.
+Unity 연결은 ROS-TCP의 JointState 기반 Runtime 연동 구조로 설명합니다.
+실제 FR5 SDK 제어 경험은 [Cocktail Robot Demo](../demos/README.md)에 별도로 정리했습니다.
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

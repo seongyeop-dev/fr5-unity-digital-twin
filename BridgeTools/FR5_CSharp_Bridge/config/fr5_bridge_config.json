@@ -1,0 +1,6 @@
+{
+  "robotIp": "192.168.58.2",
+  "pollIntervalMs": 50,
+  "readOnly": true,
+  "outputFileName": "fr5_live_state.json"
+}

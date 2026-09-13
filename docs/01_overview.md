@@ -2,131 +2,66 @@
 
 # 01. 프로젝트 개요
 
-> FR5를 단순 3D 모델로 보여주는 수준을 넘어, **Motion Planning → Workcell Physics → ROS2 State → Unity Digital Twin → 실제 Robot Interface**까지 계층을 분리해 연결한 프로젝트입니다.
+FR5 SDK 기반 실제 로봇 제어는 [Cocktail Robot Demo](../demos/README.md)에서 수행했으며,
+Digital Twin에서는 그 경험을 ROS2/Gazebo/MoveIt2 시뮬레이션과 Unity Runtime/Interface 구조로 확장했습니다.
 
-[문서 목차](README.md) · [프로젝트 README](../README.md) · [Architecture](02_architecture.md) · [Validation](05_validation.md)
+## 해결한 문제
 
-## 핵심 요약
+Robot motion, physics, joint visualization, Jig 공정, UI를 하나의 계층에 섞으면
+좌표 오차와 상태 소유권의 원인을 구분하기 어렵습니다.
+본 프로젝트는 각 입력·계산·표시의 책임을 나누고 이를 독립적으로 비교했습니다.
 
-| 항목 | 내용 |
-|:---|:---|
-| 문제 | Robot Motion, Physics, UI, 공정 시각화를 하나의 계층에 섞으면 검증 기준이 불명확해짐 |
-| 접근 | ROS2 / Gazebo / MoveIt2 / Unity / SDK 책임을 분리 |
-| Motion 결과 | TAKE1~TAKE7 Final Simulation PASS |
-| Unity 결과 | Joint Sync, Workcell Process, Camera/Recorder, UI 구성 |
-| Deployment 결과 | 개발 PC 기준본을 Laptop Runtime으로 재현 및 재검증 |
-| 남은 단계 | ROS2↔Unity Live E2E, RUN_TAKE, Actual FR5 |
+| 계층 | 결과 |
+|---|---|
+| Motion | TAKE1~TAKE7 Pick·Carry·Insert·Release 시뮬레이션 |
+| Planning | Facility Collision, Cartesian, negative J6 검사 |
+| Unity | JointState 기반 Runtime 연동 구조 구현 |
+| Workcell | 동일 외부 Jig의 SMT 이동과 Finish hand-off |
+| Mathematics | Python MDH와 C# FK의 독립 계산·좌표/축 비교 |
+| Presentation | 운영 UI, 10개 Camera shot, FHD 1080p30 Recording |
+| Deployment | Ubuntu Laptop fresh build와 headless 실행 |
 
 ## 개발 배경
 
-초기 목표는 FAIRINO FR5 Joint 상태를 Unity에 반영하는 것이었습니다. 개발이 진행되면서 단순한 시각화만으로는 실제 Robot 시스템의 Motion, Collision, Jig 이동, 공정 상태를 검증하기 어렵다는 문제가 드러났습니다.
-
-따라서 프로젝트 범위를 다음 방향으로 확장했습니다.
-
 ```mermaid
 flowchart LR
-    A["Unity Robot View"] --> B["ROS2 Joint Sync"]
-    B --> C["Gazebo Workcell"]
-    C --> D["MoveIt2 Pick & Place"]
-    D --> E["Magazine / Jig Automation"]
-    E --> F["Unity SMT Process"]
-    F --> G["FR5 SDK Interface"]
+    SDK["FR5 SDK 교육 / 실제 제어"] --> DEMO["Cocktail Robot Demo"]
+    DEMO -. "설계 경험 확장" .-> DT["Unity Digital Twin"]
+    DT --- SIM["ROS2 / Gazebo / MoveIt2"]
+    DT --- MATH["독립 FK 비교 구조"]
 ```
 
-## 개발 단계의 발전
+실물 Demo에서는 Robot, Gripper, DIO와 Lua sequence를 다뤘습니다.
+Digital Twin에서는 Simulation과 UI를 분리하고, 관절값을 받아 기존 모델 축에 적용하는 구조를 구성했습니다.
 
-현재 구조는 단순 Unity 시각화에서 바로 시작한 것이 아닙니다. FR5 SDK 교육에서 실제 Robot Control을 경험한 뒤, Cocktail Robot Demo를 중간 시연으로 만들고 그 제어 경험을 Digital Twin 구조로 확장했습니다.
+## 공정 구성
 
-| 단계 | 핵심 경험 |
-|:---|:---|
-| FR5 SDK 교육 | Robot / Gripper Interface와 기본 제어 구조 |
-| Cocktail Robot Demo | 메뉴 1·2 제조, Pick & Place 실제 시연 |
-| Unity Digital Twin | Joint Runtime Sync, GUI, 공정 상태 표현 |
-| ROS2 / Gazebo / MoveIt2 | Workcell Physics, Planning Scene, Motion Planning |
-| Laptop Runtime | Final TAKE1~TAKE7 재현성과 Integration 준비 |
+Source Magazine은 Slot01~07을 사용하고 Slot08은 EMPTY입니다.
+ROS2 TAKE는 Magazine에서 Jig를 가져와 Jig Place Conveyor에 삽입합니다.
+Unity SMT는 Insert/Release된 Jig를 명시적으로 입력받아
+Conveyor01 → Mounter → Inspection → Conveyor02 → Unloader → Finish Magazine을 실행합니다.
 
-Cocktail Demo 원본 내용은 [`../demos/01_fr5_sdk_cocktail_robot_demo/`](../demos/01_fr5_sdk_cocktail_robot_demo/)에 수정 없이 보존했습니다.
+두 실행 경로의 경계는 외부 Jig 입력이며, JointState 수신은 SMT 시작 신호가 아닙니다.
 
-## 개발 목표
+## 문서에서 다루는 성과
 
-- FR5 J1~J6 상태를 Unity Digital Twin에 실시간 반영
-- Gazebo Workcell과 MoveIt Planning Scene의 공간 기준 정합
-- Magazine Slot별 Pick & Place 자동화
-- Jig Pick / Carry / Insert / Release 과정 Simulation 검증
-- Unity에서 Source → SMT → Finish 공정 상태 표현
-- Simulation과 Actual Robot 경로 분리
-- 변경 범위를 작게 유지하고 Static/Runtime 검증을 함께 사용해 회귀를 줄임
-- 최종 포트폴리오 촬영을 위한 Camera/Recorder 구성
+- 시뮬레이션 경로와 trajectory policy.
+- 기존 joint axis/sign을 보존하는 Runtime source 선택.
+- MDH FK와 C# FK의 독립 비교 및 허용치 기반 오차 평가.
+- 공정 체류시간과 이송 속도의 분리.
+- 관찰 전용 Camera와 단일 화면/오디오 출력.
+- 실제 FR5 SDK 경험과 Digital Twin interface 설계의 연결.
 
-## 내가 구현한 범위
-
-### ROS2 / Gazebo / MoveIt2
-
-- ROS2 Jazzy 기반 Workspace
-- Gazebo FR5 Workcell
-- ros2_control Arm/Gripper
-- Planning Scene Collision Object
-- Joint / Cartesian Motion
-- Slot01~07 One-Take
-- Jig rigid follower
-- Negative-J6 Trajectory Guard
-- Laptop headless Simulation Runtime
-
-### Unity
-
-- ROS2 JointState Runtime Sync
-- Runtime 입력 소유권
-- Source / Finish Magazine
-- Jig Visual Ownership
-- SMT Process
-- Workcell Runtime Status UI
-- Camera Director / Follow / Sequence
-- Unity Recorder 5.1.7
-- UI Button 연결 상태 점검
-
-### Robot Interface
-
-- FR5 SDK 계층 구조
-- Read-only Feedback 우선 정책
-- ROS2 Command / Status 경로
-- Simulation / Actual Command 경계
-
-## 최종 공정
-
-```mermaid
-flowchart LR
-    S["Source Magazine<br/>Slot01~07"] --> R["FR5"]
-    R --> C1["Conveyor 01"]
-    C1 --> M["Mounter"]
-    M --> I["Inspection"]
-    I --> C2["Conveyor 02"]
-    C2 --> U["Unloader"]
-    U --> F["Finish Magazine"]
-```
-
-Slot08은 Source Magazine geometry에는 존재하지만 Jig를 생성하지 않으며 TAKE8도 운영하지 않습니다.
-
-## 최종 기준 자산
-
-| Asset | 기준 |
-|:---|:---|
-| Unity Scene | `Assets/Project/Scenes/01_FR_Simulator.unity` |
-| Unity | `6000.3.15f1` |
-| Recorder | `com.unity.recorder@5.1.7` |
-
-## 현재 상태
-
-| 영역 | 상태 |
-|:---|:---:|
-| Laptop Simulation Runtime | PASS |
-| TAKE1→TAKE7 | PASS |
-| Unity Camera switching | PASS |
-| Unity Recorder 설치/설정 | PASS |
-| Recorder MP4 sample | 검증 예정 |
-| ROS2 ↔ Unity Live JointState | 검증 예정 |
-| Unity `RUN_TAKE` Backend | 검증 예정 |
-| Actual FR5 Hardware | 검증 예정 |
+[Architecture](02_architecture.md) · [Validation](05_validation.md) · [Script Reference](12_script_reference.md)
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

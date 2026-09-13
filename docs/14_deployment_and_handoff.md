@@ -1,165 +1,105 @@
 <a id="top"></a>
 
-# 14. Deployment & Laptop Handoff
+# 14. Deployment / 실행 환경
 
-> Source, build artifact, Runtime environment를 구분하고 **Workspace ?? + 기준 파일 + fresh build**로 Simulation 기준을 노트북에 재현했습니다.
+## 배포 구성
 
-[문서 목차](README.md) · [프로젝트 README](../README.md) · [Laptop Runtime](15_laptop_ros2_simulation_runtime.md)
-
-## 기준 구성
-
-| 항목 | 구성 |
-|:---|:---|
-| Ubuntu | 24.04.4 LTS |
-| ROS2 | Jazzy |
-| Simulation | Gazebo 8, MoveIt2, RViz2 |
-| Workspace | `~/fr5_ros2_ws` |
-| Unity | Windows / Unity 6000.3.x |
-| Network Integration | ROS-TCP |
-
-개발 PC에서 검증한 Motion과 Workcell 구성을 노트북 Ubuntu에서 fresh build로 재구성하고, Gazebo·MoveIt2·Planning Scene·TAKE1~TAKE7 실행까지 다시 확인했습니다. 실제 FR5 장비 검증은 Simulation 결과와 분리해 진행합니다.
-
-## 주요 Motion 구성
-
-| 구성 | 경로 | 역할 |
-|:---|:---|:---|
-| Motion Script | `src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py` | Slot01~07 Pick & Place 실행 |
-| Slot Config | `src/fr5_moveit_config/config/slot01_to_slot08_final_one_take_v1.yaml` | Slot별 Pose와 Motion 설정 |
-| Workcell World | `src/fr5_gazebo/worlds/fr5_workcell.sdf` | Gazebo 설비 배치 |
-| Workcell Launch | `src/fr5_gazebo/launch/fr5_workcell.launch.py` | Gazebo Runtime 실행 |
-
-## Deployment Topology
+| 환경 | 역할 |
+|---|---|
+| Windows / Unity 6000.3.15f1 | Digital Twin, GUI, Camera |
+| Python + NumPy | offline MDH case 계산 및 export |
+| Windows / .NET Framework 4.8.1 | C# read-only Bridge |
+| Ubuntu 24.04.4 / ROS2 Jazzy | Gazebo Sim 8, MoveIt2, ros2_control, ROS-TCP |
+| Cocktail Robot Demo | 실제 FR5 SDK 제어 경험과 시연 |
 
 ```mermaid
 flowchart LR
-    GH["GitHub"] --> LAP["Ubuntu Laptop<br/>ROS2 / Gazebo / MoveIt2"]
-    GH --> WIN["Windows PC<br/>Unity"]
-    LAP -->|ROS-TCP| WIN
-    HW["Actual FR5"] -. SDK .-> WIN
+    UREPO["Unity / Python / Bridge repository"] --> WIN["Windows"]
+    RREPO["별도 ROS2 repository"] --> LAP["Ubuntu Laptop"]
+    LAP -->|"ROS-TCP / joint_states"| WIN
 ```
 
-## Laptop Migration
+ROS2 source는 [feat/fr5-gazebo-jig-attach-detach](https://github.com/seongyeop-dev/fr5_ros2_ws/tree/feat/fr5-gazebo-jig-attach-detach)에 있습니다.
+개발 PC의 build/install/log를 복사하지 않고 노트북에서 source 기반 fresh build했습니다.
 
-1. 기존 Workspace 상태 확인
-2. Workspace와 의존성 상태 확인
-3. 안전한 fast-forward만 수행
-4. 불확실하면 기존 Workspace 보존
-5. 기준 파일 확인
-6. `build/install/log` 복사 금지
-7. fresh `colcon build --symlink-install`
-8. read-only preflight
-9. Simulation execute
-
-## Runtime Environment
+## ROS2 실행 환경
 
 ```text
-Ubuntu 24.04.4
-ROS2 Jazzy
-Gazebo Sim 8
-MoveIt2
+Ubuntu 24.04.4 LTS
+ROS2 Jazzy / Gazebo Sim 8 / MoveIt2
 ROS_DOMAIN_ID=90
-```
-
-Gazebo Python binding:
-
-```text
 python3-gz-msgs10
 python3-gz-transport13
 ```
 
-Headless:
+Workcell, controller, MoveIt2, Planning Scene이 먼저 구성된 Simulation 환경에서
+Master의 `FR5_TAKE=1..7/ALL`과 명시적 `--execute`를 사용합니다.
+TAKE8은 사용하지 않습니다.
+
+headless 실행 구성:
 
 ```bash
 ros2 launch fr5_gazebo fr5_workcell.launch.py \
   gz_args:="-s -r"
 ```
 
-## ROS2 Command Contract
+[노트북 실행 결과](15_laptop_ros2_simulation_runtime.md)
 
-Listener:
-
-```text
-src/fr5_ros2_bridge/fr5_ros2_bridge/fr5_unity_command_listener.py
-```
-
-Topics:
+## ROS2 / Unity topic 계약
 
 | Topic | Type / 역할 |
-|:---|:---|
-| `/fr5/unity_command` | `std_msgs/msg/String` JSON command |
-| `/fr5/command_status` | `std_msgs/msg/String` JSON status |
-| `/joint_states` | Robot joint feedback |
+|---|---|
+| `/joint_states` | sensor_msgs/JointState, Gazebo feedback |
+| `/fr5/unity_command` | std_msgs/String JSON, 기존 명령 |
+| `/fr5/command_status` | std_msgs/String JSON, 명령 응답 |
+| `/fr5/joint_states` | 별도 테스트 publisher |
 
-Legacy commands:
+Unity ROS-TCP Connector와 Endpoint의 network 설정을 대응시킵니다.
+ROS2 listener의 command 집합과 별도 TAKE Master entry point를 분리합니다.
 
-```text
-MOVE_J
-HOME
-RESET
-STOP
-GRIPPER_OPEN
-GRIPPER_SMALL_CLOSE
-GRIPPER_NORMAL_CLOSE
-GRIPPER_RETURN_OPEN
+## Python subset
+
+저장소 root에서:
+
+```powershell
+python -m pip install -r Python/requirements.txt
+python -B -m unittest discover -s Python/Phase1_Kinematics/Tests -p "test_*.py"
+python -B Python/Phase1_Kinematics/GroundTruth/fr5_pose_case_runner.py --output-dir "$env:TEMP/FR5_MDH_Results"
 ```
 
-## TAKE Boundary
+`groundtruth_single_runner.py`는 `Assets/StreamingAssets/Input/current_joint.txt`의
+6개 degree를 읽어 기존 readable TXT를 출력합니다.
+공개 root/Assets와 개발 root/Unity/FAIRINO_FR5_DigitalTwin/Assets 배치를 지원합니다.
+이 명령은 output 파일을 갱신하므로 단순 source 검토와 구분합니다.
 
-| 계층 | 상태 |
-|:---|:---:|
-| Master `FR5_TAKE=1..7` | PASS |
-| Master `ALL` | PASS |
-| TAKE8 | OUT OF SCOPE |
-| Listener `RUN_TAKE` | 후속 통합 단계 |
-| request/status correlation | 후속 통합 단계 |
-| active Master STOP | 후속 통합 단계 |
+## Bridge
 
-Unity Slot UI의 존재와 Backend RUN_TAKE의 존재를 같은 것으로 취급하지 않습니다.
+.NET Framework 4.8.1 targeting 환경과 .NET SDK,
+외부 FAIRINO DLL을 지정해 build합니다.
+[SDK Interface](10_fr5_sdk_integration.md)에 build/mock 명령과 dependency를 설명했습니다.
+Bridge source에는 로봇 motion 명령이 없으며 JSON feedback producer 역할만 수행합니다.
 
-## Development PC / Laptop 역할
+## Unity source / Scene 구성
 
-### Laptop
+이 묶음은 기존 tracked Scene·Runtime을 보존하고 누락 핵심 source를 추가한 저장소입니다.
+Camera 배열, UI binding, Workcell 경유점은 Scene serialized reference이며
+파일 존재만으로 개발 Scene의 모든 연결이 재구성되지는 않습니다.
+기존 joint mapping·Scene·Prefab을 source 정리 과정에서 변경하지 않습니다.
 
-- Gazebo
-- MoveIt2
-- RViz
-- Final Motion Master
-- ROS-TCP Endpoint
+## 생성물과 실행 결과
 
-### Windows Development PC
-
-- Unity Digital Twin
-- GUI
-- Camera / Recorder
-- SDK Runtime 구조
-- 최종 Integration 촬영
-
-## Pre-Hardware Validation
-
-```mermaid
-flowchart TB
-    G["Git / SHA"] --> B["Fresh Build"]
-    B --> R["ROS Graph"]
-    R --> F["Read-only Feedback"]
-    F --> U["Unity Network"]
-    U --> S["STOP Path"]
-    S --> C["Command Enable"]
-```
-
-Build 성공이나 Simulation `--execute`는 Actual Robot command 허가가 아닙니다.
-
-## 현재 남은 Integration
-
-- ROS-TCP Endpoint ↔ Windows Unity Live
-- `/joint_states` live sync
-- Camera framing / simultaneous filming
-- Recorder sample MP4
-- `RUN_TAKE` dispatch / correlation
-- active Master STOP
-- Actual FR5 feedback / command / safety
-
-노트북에서는 fresh build와 Simulation Runtime 재검증까지 완료했으며, 실제 FR5 장비 검증은 별도 단계로 남아 있습니다.
+Library, Temp, Logs, Python cache/output, SDK bin/obj 및 recording은 source와 분리합니다.
+FHD 1080p30 Recording 구성과 Camera 사용 방법은
+[Camera & Recording](16_unity_camera_and_recording.md)에 정리했습니다.
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

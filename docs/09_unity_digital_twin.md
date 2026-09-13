@@ -2,184 +2,110 @@
 
 # 09. Unity Digital Twin
 
-> Unity는 Motion Planner가 아니라 **Robot State·Workcell Process·GUI·Camera를 통합해 보여주는 Digital Twin 계층**입니다.
+Unity는 로봇 motion planner가 아니라 joint feedback, 운영 UI, SMT 공정과 Camera를 구성하는 계층입니다.
 
-[문서 목차](README.md) · [프로젝트 README](../README.md) · [Camera & Recording](16_unity_camera_and_recording.md)
+## Unity Runtime Script 구조
 
-## Unity 역할
-
-- FR5 Joint Runtime Sync
-- Runtime 입력 소유권
-- Robot / Workcell visualization
-- Source / Finish Magazine
-- Jig Visual Ownership
-- SMT Process
-- Operator GUI
-- Workcell Status
-- Portfolio Camera / Recording
-
-## Runtime 입력 소유권
-
-```mermaid
-flowchart TB
-    R["ROS2 JointState"] --> M["RuntimeSyncManager"]
-    S["SDK Feedback"] -.-> M
-    T["Manual / Replay"] -.-> M
-    M --> V["VirtualJointController"]
-    V --> J["FR5 J1~J6"]
-```
-
-한 번에 하나의 Source만 Joint Transform을 소유하도록 합니다.
-
-## Edit Mode / Runtime 분리
-
-| Edit Mode 기준 | Runtime 상태 |
-|:---|:---|
-| Robot / Table Transform | Joint Feedback |
-| Equipment layout | Jig Ownership |
-| Slot 기준 | Conveyor movement |
-| Material / Prefab | Process phase |
-| Camera 기본 Transform | Camera switching |
-| UI hierarchy | Status text |
-
-Editor Utility와 Scene 구성 점검 도구를 사용해 Runtime 테스트가 기준 Scene을 임의로 변경하지 않도록 했습니다.
-
-## Source Magazine
-
-```text
-Slot01~07 = Jig
-Slot08    = EMPTY
-```
-
-Slot08은 Source supply 대상이 아닙니다.
-
-## Jig Ownership
-
-```mermaid
-stateDiagram-v2
-    [*] --> Source
-    Source --> Carried: PICK_DONE
-    Carried --> Runtime: PLACE_DONE
-    Runtime --> Finish: Handoff
-    Finish --> [*]
-```
-
-한 시점에 하나의 Owner만 Jig를 표현합니다.
-
-## SMT Process
+아래 11개 클래스는 개발 Scene의 Runtime 역할을 나타냅니다.
+실선은 입력·호출, 점선은 선택 경로 또는 관찰입니다.
+공개 소스 묶음은 기존 tracked 버전을 보존하므로 Scene 연결을 자동 설치하는 구조와는 다릅니다.
 
 ```mermaid
 flowchart LR
-    P["FR5 Place"] --> C1["Conveyor 01"]
-    C1 --> M["Mounter"]
-    M --> I["Inspection"]
-    I --> C2["Conveyor 02"]
-    C2 --> U["Unloader"]
-    U --> F["Finish Magazine"]
+    ROS["scr_FR5Ros2JointStateClient"] --> SYNC["scr_FR5RuntimeSyncManager"]
+    BR["scr_FR5CSharpBridgeClient"] -. "선택 source" .-> SYNC
+    SYNC --> V["scr_VirtualJointController"]
+    ROUTER["scr_FR5UICommandRouter"] --> PUB["scr_FR5Ros2CommandPublisher"]
+    PUB <-. "command/status 계약" .-> STATUS["scr_FR5Ros2CommandStatusClient"]
+    ROUTER -->|"source 선택"| SYNC
+    SYNC --> PANEL["scr_FR5RuntimeStatusPanelUI"]
+    PROCESS["EquipmentProcessSequenceController"] -->|"개발 Scene의 공정 상태 binding"| PANEL
+    DIRECTOR["FR5PortfolioCameraDirector"]
+    FOLLOW["FR5PortfolioCameraFollow"]
+    V -. "Tool_TCP 관찰" .-> FOLLOW
 ```
 
-### 공통 Transfer Speed
+| 외부 입력/출력 | 연결 |
+|---|---|
+| `/joint_states` | Ros2JointStateClient 입력 |
+| 기존 FR5 J1~J6 Transform | VirtualJointController 출력 |
+| `/fr5/unity_command` / `/fr5/command_status` | Publisher / StatusClient |
+| 명시적으로 전달한 동일 Jig | Process Controller 입력 API |
+| SMT / Finish Magazine | Process Controller 출력 |
+| Game View | Director의 Camera 선택 + Follow의 관찰 pose |
 
-```text
-speed = 0.15 m/s
-duration = world_distance / speed
+Publisher와 StatusClient 사이 점선은 topic 기반 command/status 계약입니다.
+이 공개 묶음의 보존된 Publisher가 새 StatusClient를 자동 생성·구독한다는 뜻은 아닙니다.
+
+## Source 선택과 관절 적용
+
+`scr_FR5RuntimeSyncManager`는 `IFR5RuntimePoseSource`에서 sample을 받아
+`scr_VirtualJointController`의 `SetJointAngleByIndex`, `ApplyPose`로 전달합니다.
+실제 관절 적용 클래스는 `scr_VirtualJointController`입니다.
+
+ROS2 joint name으로 joint1~6을 대응시키고 radian을 degree로 변환합니다.
+JSON Bridge와 Replay도 같은 입력 계약을 사용하며 joint axis/sign은 기존 모델 기준을 유지합니다.
+Manual UI의 입력/preview와 live 적용의 소유권도 구분합니다.
+
+## Command와 공정의 경계
+
+기존 UI 명령 경로는 Router → Publisher → ROS2 listener입니다.
+Backend가 처리하는 MOVE_J/HOME/RESET/STOP/Gripper와
+ROS2 Master의 TAKE sequence는 별도 entry point입니다.
+
+JointState 수신이나 Virtual Joint 갱신은 SMT 자동 시작 조건이 아닙니다.
+공정의 입력은 다음 API입니다.
+
+```csharp
+TryAcceptFr5InsertedJig(Transform jig, int sourceSlot)
 ```
 
-Process dwell과 Translation을 분리합니다.
+API는 전달한 동일 Jig를 수락하며 sourceSlot 1~7, 중복 입력, 공정 busy와 Finish 상태를 확인합니다.
 
-### Finish Straight Insert
+## SMT / Finish
 
-Unloader 출력 시 Jig world rotation을 저장하고 Height Alignment / Approach / Insert 동안 유지합니다.
+- Source Slot01~07, Slot08 EMPTY.
+- Source Magazine과 Finish `filledSlots[]`는 별개.
+- ExternalFr5는 3.0초 dwell 후 현재 insert 위치에서 이동.
+- Conveyor01 → Mounter → Inspection → Conveyor02 → Unloader → Finish.
+- 공통 `0.15 m/s` 선속도와 거리 기반 duration.
+- Mounter/Inspection processing dwell과 Lift timing은 별도.
+- 자동 Jig 생성 및 자동 다음-cycle 시작 차단.
 
-```text
-Quaternion.Angle(startRotation, endRotation) <= 0.01°
-```
+Finish는 `unloaderEnd` 도착 rotation을 저장한 다음 Lift를 world-Y로 이동시킵니다.
+Jig는 회전하지 않고 slot position까지 world-horizontal 직선으로 이동합니다.
+`RotationDriftDegrees(start, end) <= 0.01`을 검사하며,
+slot.rotation을 이동 목표로 삼지 않습니다.
+완료 시 runtime Jig hide와 filledSlot 활성화 사이에 frame을 넘기지 않습니다.
 
-Static/Offline 검증은 완료했고 최종 공정 시각 검증은 촬영 단계에서 다시 확인합니다.
+## Runtime / Workcell Status
 
-## Workcell Status GUI
+개발 Scene에서는 Runtime 연결 상태와 Process Controller의
+`ExternalPhase`, `ExternalCompletedCount`, `LastSourceSlot`, `FilledSlotCount`를 표시하도록 구성했습니다.
+주기 제한, 같은 문자열 재대입 억제, 숫자 deadband와 last-value 보존으로 재표시를 줄였습니다.
 
-Runtime Panel에 Process / Phase / Source / Finish 요약을 0.2초 throttle/cache 구조로 표시합니다.
+공개 저장소에 추가한 Process Controller는 이 상태 API를 제공하지만,
+기존 tracked StatusPanel이나 Scene binding을 이번 소스 묶음에서 덮어쓰지는 않습니다.
 
-표시 예:
+## Camera와 기존 RenderTexture
 
-```text
-공정 실행 중 / 단계 슬롯 삽입
-완료 2 / 최근 공급 03
-적재 4 / 대상 10
-```
+Director는 Main + Portfolio shot 10개를 전환하고 Game View와 AudioListener를 각각 하나로 관리합니다.
+기존 RenderTexture Camera는 이 출력 전환 대상에서 제외합니다.
 
-기술명 `FR5`, `ROS2`, `SDK`, `TCP`는 영문으로 유지하고 사용자 동작/상태 문구만 한국어 중심으로 정리합니다.
+Follow는 serialized target과 offset/damping으로 자기 Camera의 position/rotation만 갱신합니다.
+개발 Scene의 target은 Tool_TCP이며, 이 클래스 자체가 공정 단계별 Jig target을 자동 선택하지 않습니다.
+시간 기반 Camera sequence는 Robot/Conveyor 명령을 실행하지 않습니다.
 
-## UI 이벤트 구성
-
-Scene 구성 점검 기준:
-
-| 항목 | 결과 |
-|:---|---:|
-| Button | 96 |
-| 1 persistent listener | 85 |
-| 0 persistent listener | 9 |
-| 2 persistent listeners | 2 |
-| Missing Target | 0 |
-| Missing Method | 0 |
-| Missing Script | 0 |
-| STOP listener | 1 |
-
-Runtime `AddListener`는 Edit Mode Persistent UnityEvent와 별도로 추적합니다.
-
-## Portfolio Camera
-
-기존 RenderTexture Camera를 보존하면서 Game View shot Camera를 분리했습니다.
-
-```text
-Main
-+ Process Camera 01~07
-+ Top Overview
-+ FR5 Close-up
-+ Cinematic Follow
-```
-
-Game View output과 AudioListener는 각각 하나만 활성화합니다.
-
-Camera 전환:
-
-```text
-1~7 Process
-8 Top
-9 Close-up
-0 Follow
-` Main
-```
-
-Play Mode에서 switching 자체는 확인했습니다.
-
-## Unity Recorder
-
-- `com.unity.recorder@5.1.7`
-- FHD 1080p
-- 16:9
-- H.264 MP4
-- High
-- 30 FPS
-- Audio OFF
-- `Project/Recordings`
-
-Recorder는 Unity clean B-roll 용도로 사용하며 Gazebo/RViz/Unity 동시 화면은 외부 capture와 역할을 분리합니다.
-
-## 현재 검증 경계
-
-| 항목 | 상태 |
-|:---|:---:|
-| Camera switching | PASS |
-| AudioListener 1 | PASS |
-| STOP listener 1 | PASS |
-| Workcell Text binding | PASS |
-| Recorder 설치/설정 | PASS |
-| MP4 sample | 최종 촬영 단계에서 확인 예정 |
-| ROS2 live JointState E2E | 최종 통합 검증 예정 |
-| Actual FR5 SDK E2E | 실제 장비 검증 예정 |
+[Camera/Recording](16_unity_camera_and_recording.md) · [Script Reference](12_script_reference.md)
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)

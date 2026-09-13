@@ -24,7 +24,7 @@ flowchart LR
     FR5 --> MAG["Source Magazine"]
     MAG --> MC["Magazine Conveyor"]
     FR5 --> JC["Jig Place Conveyor"]
-    JC --> SMT["Unity SMT Process"]
+    JC -. "명시적 Jig 입력 경계" .-> SMT["Unity SMT Process"]
 ```
 
 FR5 Base는 고정하고 설비 정합 문제를 Robot Base 이동으로 해결하지 않습니다.
@@ -83,14 +83,16 @@ require_negative_j6_trajectory
 
 ```mermaid
 flowchart LR
-    AT["Attach"] --> REL["Tool-to-Jig Relative Pose"]
+    AT["현재 Tool / Jig pose 읽기"] --> REL["고정 Tool-to-Jig Relative Pose"]
     REL --> TF["LIVE TF Follower"]
     TF --> CAR["Carry / Insert"]
-    CAR --> DET["Detach"]
+    CAR --> DET["follower 중단 / Release"]
     DET --> CONV["Conveyor"]
 ```
 
-Jig를 목적지로 순간 이동시키지 않고 Tool과의 상대관계를 유지합니다.
+LIVE Tool TF에 고정 상대변환을 합성해 Gazebo Jig pose를 갱신합니다. 최종 TAKE의 추종은 physics attach/detach만으로 이루어지는 방식과 다릅니다.
+
+Gazebo release 이후 conveyor flow와 Unity의 외부 Jig 입력 API는 각각의 실행 경계입니다. JointState만으로 Unity SMT를 시작하지 않습니다.
 
 ## ACTION 단계 설명 원칙
 
@@ -99,9 +101,7 @@ ACTION05는 TAKE별 실행 시퀀스에서 다르게 적용되므로 Slot 범위
 
 ## 통합 모션 실행 구조
 
-```text
-src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py
-```
+[최종 Master](https://github.com/seongyeop-dev/fr5_ros2_ws/blob/feat/fr5-gazebo-jig-attach-detach/src/fr5_moveit_config/scripts/slot01_to_slot08_final_one_take.py)
 TAKE1~TAKE7 Final Simulation PASS, TAKE8은 운영 제외입니다.
 
 ## Laptop Performance 문제 해결
@@ -134,4 +134,12 @@ Motion 문제가 아니라 Runtime performance 문제로 분리해 해결했습�
 
 ---
 
-[↑ 맨 위로](#top) · [문서 목차](README.md) · [프로젝트 README](../README.md)
+## 문서 목차
+
+[프로젝트 README](../README.md) · [문서 목록](README.md) · [맨 위로](#top)
+
+**기본 문서**
+[01 Overview](01_overview.md) · [02 Architecture](02_architecture.md) · [03 Features](03_features.md) · [04 Data Flow](04_data_flow.md) · [05 Validation](05_validation.md) · [06 Scope](06_project_scope.md) · [07 Structure](07_project_structure.md)
+
+**상세 기술 문서**
+[08 ROS2/Gazebo/MoveIt2](08_ros2_gazebo_moveit.md) · [09 Unity](09_unity_digital_twin.md) · [10 FR5 SDK](10_fr5_sdk_integration.md) · [11 Motion](11_motion_and_slot_validation.md) · [12 Scripts](12_script_reference.md) · [13 Decisions](13_design_decisions_and_issues.md) · [14 Deployment](14_deployment_and_handoff.md) · [15 Simulation](15_laptop_ros2_simulation_runtime.md) · [16 Camera](16_unity_camera_and_recording.md)
