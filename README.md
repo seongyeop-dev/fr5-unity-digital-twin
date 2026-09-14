@@ -223,3 +223,37 @@ Jig 공정과 Camera는 별도 입력·소유권을 갖도록 구성했습니다
 | **ROS2 Simulation** | [ROS2 / Gazebo / MoveIt2](docs/08_ros2_gazebo_moveit.md) · [fr5_ros2_ws Repository](https://github.com/seongyeop-dev/fr5_ros2_ws) |
 
 [맨 위로 이동](#fairino-fr5-digital-twin)
+
+---
+
+## 배치 설계 과정 및 시뮬레이션 영상
+
+### 초기 배치 구성
+
+아래 구성도는 FR5 Robot Loading Cell, SMT Line, Unloader Cell을 중심으로
+설비 위치와 전체 공정 흐름을 검토하기 위해 작성한 초기 배치 구성입니다.
+
+![FR5 SMT Workcell 배치 구성도](media/portfolio/layout/01_layout_composition.png)
+
+### 배치 설계 과정
+
+설비 간 간섭, FR5 작업 영역, 컨베이어 동선, 안전 설비 및 작업 공간을 검토하면서
+Unity Workcell 배치를 단계적으로 조정했습니다.
+
+| 단계 | 배치 검토 이미지 |
+| --- | --- |
+| 1차 배치 | ![1차 배치](media/portfolio/layout/02_workcell_layout_v1.png) |
+| 2차 배치 | ![2차 배치](media/portfolio/layout/03_workcell_layout_v2.png) |
+| 오브젝트 배치 01 | ![오브젝트 배치 01](media/portfolio/layout/04_object_layout_01.png) |
+| 오브젝트 배치 02 | ![오브젝트 배치 02](media/portfolio/layout/05_object_layout_02.png) |
+| 오브젝트 배치 03 | ![오브젝트 배치 03](media/portfolio/layout/06_object_layout_03.png) |
+| 오브젝트 배치 04 | ![오브젝트 배치 04](media/portfolio/layout/07_object_layout_04.png) |
+| 전체 레이아웃 검토 | ![전체 레이아웃](media/portfolio/layout/08_workcell_full_layout.png) |
+
+### 구현 및 실행 영상
+
+| 영상 | 내용 |
+| --- | --- |
+| [Unity ↔ ROS2 연동](media/portfolio/videos/01_unity_ros2.mp4) | ROS2 JointState 기반 Unity Digital Twin 동기화 |
+| [SMT 공정](media/portfolio/videos/02_smt_process.mp4) | Jig 투입 → Mounter → Inspection → Conveyor → Unloader 공정 |
+| [FR5 Jig 공급](media/portfolio/videos/03_fr5_jig_supply.mp4) | FR5의 Magazine Jig Pick, 이송, Insert 및 Release 동작 |
