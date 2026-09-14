@@ -2,6 +2,16 @@
 
 # FAIRINO FR5 Digital Twin
 
+## 🎬 메인 시뮬레이션 영상
+
+**FR5 Digital Twin · Unity ↔ ROS2 통합 시뮬레이션**
+
+[▶ 메인 영상 바로 보기](media/portfolio/videos/01_unity_ros2.mp4)
+
+ROS2 기반 FR5 동작과 Unity Digital Twin 연동 결과를 확인할 수 있는 대표 실행 영상입니다.
+
+---
+
 > 실제 FR5 SDK 제어 경험을 바탕으로 ROS2·Gazebo·MoveIt2 시뮬레이션과 Unity의 관절 동기화, SMT 공정, 운영 UI, Camera/Recording을 구성한 개인 디지털 트윈 프로젝트입니다.
 
 [문서 목록](docs/README.md) · [Architecture](docs/02_architecture.md) · [Validation](docs/05_validation.md) · [핵심 코드](docs/12_script_reference.md)
