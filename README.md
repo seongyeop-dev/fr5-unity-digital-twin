@@ -8,6 +8,8 @@
 
 [▶ 메인 영상 바로 보기](media/portfolio/videos/01_unity_ros2.mp4)
 
+https://github.com/user-attachments/assets/6a58e340-b840-4f03-bba1-41d7353b24d7
+
 ROS2 기반 FR5 동작과 Unity Digital Twin 연동 결과를 확인할 수 있는 대표 실행 영상입니다.
 
 ---
@@ -166,6 +168,9 @@ Finish는 world-Y Lift 정렬, 회전 없는 수평 삽입, runtime Jig→filled
 
 [설계 결정과 문제 해결](docs/13_design_decisions_and_issues.md)
 
+
+
+
 ## 기술 스택
 
 | 영역 | 기술 |
@@ -267,3 +272,13 @@ Unity Workcell 배치를 단계적으로 조정했습니다.
 | [Unity ↔ ROS2 연동](media/portfolio/videos/01_unity_ros2.mp4) | ROS2 JointState 기반 Unity Digital Twin 동기화 |
 | [SMT 공정](media/portfolio/videos/02_smt_process.mp4) | Jig 투입 → Mounter → Inspection → Conveyor → Unloader 공정 |
 | [FR5 Jig 공급](media/portfolio/videos/03_fr5_jig_supply.mp4) | FR5의 Magazine Jig Pick, 이송, Insert 및 Release 동작 |
+
+
+
+https://github.com/user-attachments/assets/37a3b3e5-2e98-4f9f-b839-cdc8ade48ca1
+
+
+
+https://github.com/user-attachments/assets/cacf7f8b-68bf-4510-889e-4aeaa54ac785
+
+
